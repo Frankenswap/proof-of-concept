@@ -1,0 +1,16 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["dependencies"]
+auto_detect_remappings = false
+remappings = [
+    "forge-std-1.9.5/=dependencies/forge-std-1.9.5/"
+]
+evm_version = "cancun"
+solc = "0.8.28"
+via-ir = true
+
+[dependencies]
+forge-std = "1.9.5"
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
