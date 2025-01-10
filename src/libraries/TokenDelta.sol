@@ -19,7 +19,7 @@ library TokenDelta {
         }
     }
 
-    function applyDelta(Token token, address target, int256 delta) internal returns (int256 previous, int256 next) {
+    function applyDelta(Token token, address target, int128 delta) internal returns (int256 previous, int256 next) {
         bytes32 solt = _computeSolt(target, token);
 
         assembly ("memory-safe") {
