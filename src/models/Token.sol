@@ -66,7 +66,7 @@ library TokenLibrary {
                         // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
                         // Counterintuitively, this call must be positioned second to the or() call in the
                         // surrounding and() call or else returndatasize() will be zero during the computation.
-                        call(gas(), currency, 0, fmp, 68, 0, 32)
+                        call(gas(), token, 0, fmp, 68, 0, 32)
                     )
 
                 // Now clean the memory we used
@@ -77,7 +77,7 @@ library TokenLibrary {
             // revert with ERC20TransferFailed, containing the bubbled up error as an argument
             if (!success) {
                 CustomRevert.bubbleUpAndRevertWith(
-                    Currency.unwrap(currency), IERC20Minimal.transfer.selector, ERC20TransferFailed.selector
+                    Token.unwrap(token), IERC20Minimal.transfer.selector, ERC20TransferFailed.selector
                 );
             }
         }
@@ -87,7 +87,7 @@ library TokenLibrary {
         if (token.isAddressZero()) {
             return address(this).balance;
         } else {
-            return IERC20Minimal(Currency.unwrap(currency)).balanceOf(address(this));
+            return IERC20Minimal(Token.unwrap(token)).balanceOf(address(this));
         }
     }
 
