@@ -6,9 +6,11 @@ import {Pool} from "./models/Pool.sol";
 import {PoolId} from "./models/PoolId.sol";
 import {SafeCast} from "./libraries/SafeCast.sol";
 import {ERC6909Claims} from "./ERC6909Claims.sol";
+import {IUnlockCallback} from "./interfaces/callback/IUnlockCallback.sol";
 import {Token, TokenLibrary} from "./models/Token.sol";
 import {TokenDelta} from "./libraries/TokenDelta.sol";
 import {NonzeroDeltaCount} from "./libraries/NonzeroDeltaCount.sol";
+import {TranscationLock} from "./libraries/TranscationLock.sol";
 
 contract PoolManager is IPoolManager, ERC6909Claims {
     using SafeCast for *;
@@ -16,8 +18,24 @@ contract PoolManager is IPoolManager, ERC6909Claims {
 
     mapping(PoolId => Pool) pools;
 
-    // TODO: Add unlock
-    function clear(Token token, uint256 amount) external {
+    modifier onlyWhenTxUnlocked() {
+        // TODO: Revert selector
+        if (!TranscationLock.isUnlocked()) revert();
+        _;
+    }
+
+    function unlock(bytes calldata data) external returns (bytes memory result) {
+        // TODO: Revert selector
+        if (TranscationLock.isUnlocked()) revert();
+
+        result = IUnlockCallback(msg.sender).unlockCallback(data);
+
+        // TODO: Revert selector
+        if (NonzeroDeltaCount.read() != 0) revert();
+        TranscationLock.lock();
+    }
+
+    function clear(Token token, uint256 amount) external onlyWhenTxUnlocked {
         int256 current = token.getDelta(msg.sender);
         int128 amountDelta = amount.toInt128();
 
@@ -29,8 +47,7 @@ contract PoolManager is IPoolManager, ERC6909Claims {
         }
     }
 
-    // TODO: Add unlock
-    function mint(address to, uint256 id, uint256 amount) external {
+    function mint(address to, uint256 id, uint256 amount) external onlyWhenTxUnlocked {
         unchecked {
             Token token = TokenLibrary.fromId(id);
             _accountDelta(token, -(amount.toInt128()), msg.sender);
@@ -38,8 +55,7 @@ contract PoolManager is IPoolManager, ERC6909Claims {
         }
     }
 
-    // TODO: Add unlock
-    function burn(address from, uint256 id, uint256 amount) external {
+    function burn(address from, uint256 id, uint256 amount) external onlyWhenTxUnlocked {
         Token token = TokenLibrary.fromId(id);
         _accountDelta(token, amount.toInt128(), from);
         _burnFrom(from, token.toId(), amount);
