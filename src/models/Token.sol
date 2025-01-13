@@ -5,6 +5,7 @@ import {IERC20Minimal} from "../interfaces/external/IERC20Minimal.sol";
 import {CustomRevert} from "../libraries/CustomRevert.sol";
 
 using {greaterThan as >, lessThan as <, greaterThanOrEqualTo as >=, equals as ==} for Token global;
+
 type Token is address;
 
 using TokenLibrary for Token global;
