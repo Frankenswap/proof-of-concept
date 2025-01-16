@@ -2,9 +2,14 @@
 pragma solidity ^0.8.0;
 
 struct Tick {
-    uint160 tickPrev; // TODO: 128 bit
-    uint160 tickNext;
-    uint128 amountTotal;
+    //   prev price          next price
+    //       │                   │
+    // ──────▼────────▲──────────▼─────►
+    //                │
+    //          current price
+    uint160 prevSqrtPriceX96;
+    uint160 nextSqrtPriceX96;
+    int128 amountTotal;
     uint64 orderCount;
     uint64 orderWatermark;
 }
@@ -13,32 +18,65 @@ using TickLibrary for Tick global;
 
 /// @title TickLibrary
 library TickLibrary {
-    function insertAfter(
+    function insert(
         mapping(uint160 => Tick) storage self,
-        uint160 nowTick,
-        uint160 tickNext,
+        uint160 sqrtPriceX96,
+        uint160 insertPriceX96,
         Tick memory insertTick
     ) internal {
-        uint160 nextTick = self[nowTick].tickNext;
+        uint160 nextTick = self[sqrtPriceX96].nextSqrtPriceX96;
 
         if (nextTick == 0) {
-            self[nowTick].tickNext = tickNext;
+            self[sqrtPriceX96].nextSqrtPriceX96 = insertPriceX96;
         } else {
-            uint160 cacheTick = self[nowTick].tickNext;
+            uint160 cacheTick = self[sqrtPriceX96].nextSqrtPriceX96;
 
-            self[nowTick].tickNext = tickNext;
-            self[cacheTick].tickPrev = tickNext;
+            self[sqrtPriceX96].nextSqrtPriceX96 = insertPriceX96;
+            self[cacheTick].prevSqrtPriceX96 = insertPriceX96;
         }
 
-        self[tickNext] = insertTick;
+        self[insertPriceX96] = insertTick;
     }
 
-    function getAfterTick(mapping(uint160 => Tick) storage self, uint160 nowTick)
+    function update(
+        mapping(uint160 => Tick) storage self,
+        uint160 sqrtPriceX96,
+        int128 amountDelta,
+        uint64 orderCountDelta,
+        uint64 orderWatermark
+    ) internal {
+        unchecked {
+            self[sqrtPriceX96].amountTotal += amountDelta;
+            self[sqrtPriceX96].orderCount += orderCountDelta;
+            self[sqrtPriceX96].orderWatermark = orderWatermark;
+        }
+    }
+
+    function checkInitilize(mapping(uint160 => Tick) storage self, uint160 sqrtPriceX96)
         internal
         view
-        returns (Tick memory tick)
+        returns (bool isInitilized)
     {
-        // TODO: Gas optimization. Use assembly get tickNext
-        tick = self[self[nowTick].tickNext];
+        assembly ("memory-safe") {
+            mstore(0, sqrtPriceX96)
+            mstore(0x20, self.slot)
+            let slot := keccak256(0, 0x40)
+
+            isInitilized := gt(sload(add(slot, 2)), 0)
+        }
+    }
+
+    function checkRange(mapping(uint160 => Tick) storage self, uint160 prevSqrtPriceX96, uint160 sqrtPriceX96)
+        internal
+        view
+        returns (bool)
+    {
+        uint160 nextSqrtPriceX96 = self[prevSqrtPriceX96].nextSqrtPriceX96;
+
+        if (prevSqrtPriceX96 < sqrtPriceX96 && sqrtPriceX96 < nextSqrtPriceX96) {
+            return true;
+        }
+
+        return false;
     }
 }
