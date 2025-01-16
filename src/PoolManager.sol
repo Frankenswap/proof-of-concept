@@ -2,8 +2,6 @@
 pragma solidity =0.8.28;
 
 import {IPoolManager} from "./interfaces/IPoolManager.sol";
-import {Pool} from "./models/Pool.sol";
-import {PoolId} from "./models/PoolId.sol";
 import {SafeCast} from "./libraries/SafeCast.sol";
 import {ERC6909Claims} from "./ERC6909Claims.sol";
 import {IUnlockCallback} from "./interfaces/callback/IUnlockCallback.sol";
@@ -12,27 +10,24 @@ import {TokenDelta} from "./libraries/TokenDelta.sol";
 import {TokenReserves} from "./libraries/TokenReserves.sol";
 import {NonzeroDeltaCount} from "./libraries/NonzeroDeltaCount.sol";
 import {TranscationLock} from "./libraries/TranscationLock.sol";
+import {CustomRevert} from "./libraries/CustomRevert.sol";
 
 contract PoolManager is IPoolManager, ERC6909Claims {
     using SafeCast for *;
     using TokenDelta for Token;
-
-    mapping(PoolId => Pool) pools;
+    using CustomRevert for bytes4;
 
     modifier onlyWhenTxUnlocked() {
-        // TODO: Revert selector
-        if (!TranscationLock.isUnlocked()) revert();
+        if (!TranscationLock.isUnlocked()) AlreadyTxUnlocked.selector.revertWith();
         _;
     }
 
     function unlock(bytes calldata data) external returns (bytes memory result) {
-        // TODO: Revert selector
-        if (TranscationLock.isUnlocked()) revert();
+        if (TranscationLock.isUnlocked()) AlreadyTxUnlocked.selector.revertWith();
 
         result = IUnlockCallback(msg.sender).unlockCallback(data);
 
-        // TODO: Revert selector
-        if (NonzeroDeltaCount.read() != 0) revert();
+        if (NonzeroDeltaCount.read() != 0) TokenNotSettled.selector.revertWith();
         TranscationLock.lock();
     }
 
@@ -64,8 +59,7 @@ contract PoolManager is IPoolManager, ERC6909Claims {
         int256 current = token.getDelta(msg.sender);
         int128 amountDelta = amount.toInt128();
 
-        // TODO: Add revert selector
-        if (amountDelta != current) revert();
+        if (amountDelta != current) MustClearExactPositiveDelta.selector.revertWith();
 
         unchecked {
             _accountDelta(token, -(amountDelta), msg.sender);
@@ -92,8 +86,7 @@ contract PoolManager is IPoolManager, ERC6909Claims {
         if (token.isAddressZero()) {
             paid = msg.value;
         } else {
-            // TODO: Revert Error
-            if (msg.value > 0) revert();
+            if (msg.value > 0) NonzeroNativeValue.selector.revertWith();
 
             uint256 reservesBefore = TokenReserves.getSyncedReserves();
             uint256 reservesNow = token.balanceOfSelf();
