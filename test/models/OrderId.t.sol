@@ -15,4 +15,12 @@ contract OrderIdTest is Test {
         assertEq(orderId.sqrtPriceX96(), sqrtPriceX96);
         assertEq(orderId.index(), index);
     }
+
+    function test_fuzz_orderId_next(uint160 sqrtPriceX96, uint96 index) public pure {
+        OrderId orderId = OrderIdLibrary.from(sqrtPriceX96, index);
+
+        unchecked {
+            assertEq(orderId.next().index(), orderId.index() + 1);
+        }
+    }
 }
