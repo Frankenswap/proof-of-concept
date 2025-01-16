@@ -4,7 +4,7 @@ out = "out"
 libs = ["dependencies"]
 auto_detect_remappings = false
 remappings = [
-    "forge-std-1.9.5/=dependencies/forge-std-1.9.5/"
+    "forge-std/=dependencies/forge-std-1.9.5/src/"
 ]
 evm_version = "cancun"
 solc = "0.8.28"
