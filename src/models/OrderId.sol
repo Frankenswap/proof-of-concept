@@ -23,6 +23,12 @@ library OrderIdLibrary {
         }
     }
 
+    function next(OrderId self) internal pure returns (OrderId nextOrderId) {
+        assembly ("memory-safe") {
+            nextOrderId := add(self, 1)
+        }
+    }
+
     // #### SETTERS ####
     function from(uint160 _sqrtPriceX96, uint96 _index) internal pure returns (OrderId self) {
         assembly ("memory-safe") {

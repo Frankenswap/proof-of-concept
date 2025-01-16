@@ -9,6 +9,7 @@ struct Tick {
     //          current price
     uint160 prevSqrtPriceX96;
     uint160 nextSqrtPriceX96;
+    // When tick crossed, the amountTotal will be reset
     int128 amountTotal;
     uint64 orderCount;
     uint64 orderWatermark;
