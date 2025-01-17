@@ -37,6 +37,8 @@ interface IPoolManager {
         bool partiallyFillable;
         // whether any amount not immediately filled should become an open order or be refunded
         bool goodTillCancelled;
+        // the desired input amount (if negative), or the desired output amount (if positive)
+        int128 amountSpecified;
         // the square root price at which to stop filling the order, or place an open order
         uint160 sqrtPriceLimitX96;
         // the surrounding ticks for helping newly active tick to find its place
