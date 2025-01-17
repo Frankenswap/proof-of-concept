@@ -21,7 +21,7 @@ library PoolKeyLibrary {
             mstore(20, calldataload(add(self, 44)))
             mstore(32, or(shl(192, calldataload(add(self, 32))), calldataload(add(self, 68))))
 
-            poolId := keccak256(0, 60)
+            poolId := and(keccak256(0, 60), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
         }
     }
 }
