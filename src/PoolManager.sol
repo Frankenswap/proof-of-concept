@@ -37,8 +37,4 @@ contract PoolManager is IPoolManager {
     function removeOrder(PoolKey calldata poolKey, OrderId orderId) external returns (BalanceDelta balanceDelta) {
         // TODO: implement
     }
-
-    function _getPool(PoolId id) internal view returns (Pool storage) {
-        return _pools[id];
-    }
 }
