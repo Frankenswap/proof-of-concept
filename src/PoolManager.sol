@@ -34,7 +34,7 @@ contract PoolManager is IPoolManager {
     }
 
     /// @inheritdoc IPoolManager
-    function removeOrder(OrderId orderId) external returns (BalanceDelta balanceDelta) {
+    function removeOrder(PoolKey calldata poolKey, OrderId orderId) external returns (BalanceDelta balanceDelta) {
         // TODO: implement
     }
 }

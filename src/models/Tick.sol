@@ -5,8 +5,8 @@ import {Order} from "./Order.sol";
 import {OrderId} from "./OrderId.sol";
 
 struct Tick {
-    uint32 prev;
-    uint32 next;
+    uint160 prev;
+    uint160 next;
     uint128 totalAmountOpen;
     uint64 lastOpenOrder;
     uint64 lastCloseOrder;

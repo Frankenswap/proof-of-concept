@@ -42,7 +42,7 @@ interface IPoolManager {
         // the square root price at which to stop filling the order, or place an open order
         uint160 sqrtPriceLimitX96;
         // the surrounding ticks for helping newly active tick to find its place
-        uint32[] neighborTicks;
+        uint160[] neighborTicks;
     }
 
     /// @notice Places an order in the pool
@@ -55,7 +55,8 @@ interface IPoolManager {
         returns (BalanceDelta balanceDelta, OrderId orderId);
 
     /// @notice Removes an order from the pool
+    /// @param poolKey The key of the pool
     /// @param orderId The id of the order
     /// @return balanceDelta The change in balances
-    function removeOrder(OrderId orderId) external returns (BalanceDelta balanceDelta);
+    function removeOrder(PoolKey calldata poolKey, OrderId orderId) external returns (BalanceDelta balanceDelta);
 }
