@@ -3,59 +3,62 @@ pragma solidity =0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {Tick, TickLibrary} from "../../src/models/Tick.sol";
+import {Order} from "../../src/models/Order.sol";
+import {OrderId} from "../../src/models/OrderId.sol";
 
 contract TickTest is Test {
     using TickLibrary for mapping(uint160 => Tick);
 
     mapping(uint160 => Tick) public ticks;
+    mapping(OrderId => Order) public orders;
+    Tick public tick;
 
     function setUp() public {
-        ticks[0] = Tick({prevSqrtPriceX96: 0, nextSqrtPriceX96: 0, amountTotal: 1, orderCount: 1, orderWatermark: 0});
+        ticks[0].initialize(0, type(uint160).max, 1);
+        ticks[type(uint160).max].initialize(0, type(uint160).max, 1);
     }
 
-    function test_insert_NextIsZero() public {
-        Tick memory tick =
-            Tick({prevSqrtPriceX96: 0, nextSqrtPriceX96: 0, amountTotal: 0, orderCount: 0, orderWatermark: 0});
-        ticks.insert(0, 100, tick);
+    function placeMockOrder(uint160 targetTick, uint160[] memory neighborTicks) internal returns (OrderId orderId) {
+        TickLibrary.PlaceOrderParams memory params = TickLibrary.PlaceOrderParams({
+            maker: address(this),
+            zeroForOne: true,
+            amount: 100,
+            targetTick: targetTick,
+            currentTick: 0,
+            neighborTicks: neighborTicks
+        });
 
-        assertEq(ticks[100].prevSqrtPriceX96, 0);
-        assertEq(ticks[0].nextSqrtPriceX96, 100);
+        return ticks.placeOrder(params);
     }
 
-    function test_insert_NextIsNotZero() public {
-        ticks[0] = Tick({prevSqrtPriceX96: 0, nextSqrtPriceX96: 100, amountTotal: 0, orderCount: 0, orderWatermark: 0});
-        ticks[100] = Tick({prevSqrtPriceX96: 0, nextSqrtPriceX96: 0, amountTotal: 0, orderCount: 0, orderWatermark: 0});
-
-        Tick memory tick =
-            Tick({prevSqrtPriceX96: 0, nextSqrtPriceX96: 100, amountTotal: 0, orderCount: 0, orderWatermark: 0});
-        ticks.insert(0, 50, tick);
-
-        assertEq(ticks[0].nextSqrtPriceX96, 50);
-        assertEq(ticks[100].prevSqrtPriceX96, 50);
+    function verifyTickLink(uint160 prevTick, uint160 targetTick, uint160 nextTick) internal view {
+        if (prevTick == targetTick && nextTick == targetTick) {
+            return;
+        }
+        if (prevTick == targetTick || nextTick == targetTick) {
+            assertTrue(ticks[prevTick].next == nextTick, "prevTick.next != nextTick");
+            assertTrue(ticks[nextTick].prev == prevTick, "nextTick.prev != prevTick");
+        } else {
+            assertTrue(ticks[prevTick].next == targetTick, "prevTick.next != targetTick");
+            assertTrue(ticks[targetTick].prev == prevTick, "targetTick.prev != prevTick");
+            assertTrue(ticks[targetTick].next == nextTick, "targetTick.next != nextTick");
+            assertTrue(ticks[nextTick].prev == targetTick, "nextTick.prev != targetTick");
+        }
     }
 
-    function test_checkInitilize() public view {
-        assertEq(ticks.checkInitilize(0), true);
-        assertEq(ticks.checkInitilize(1), false);
-    }
+    function test_fuzz_placeOrder_next(uint96 targetTick, uint32 tickDelta, uint32 otherTickDelta) public {
+        uint160[] memory neighborTicks = new uint160[](0);
 
-    function test_fuzz_checkInitilize(uint160 sqrtPriceX96) public {
-        vm.assume(sqrtPriceX96 != 0);
-        assertEq(ticks.checkInitilize(sqrtPriceX96), false);
-        ticks[sqrtPriceX96] =
-            Tick({prevSqrtPriceX96: 0, nextSqrtPriceX96: 0, amountTotal: 0, orderCount: 1, orderWatermark: 0});
+        uint160 beforeTick = targetTick;
+        uint160 mediumTick = uint160(targetTick) + tickDelta;
+        uint160 afterTick = uint160(targetTick) + tickDelta + otherTickDelta;
 
-        assertEq(ticks.checkInitilize(sqrtPriceX96), true);
-    }
+        placeMockOrder(beforeTick, neighborTicks);
+        placeMockOrder(mediumTick, neighborTicks);
+        placeMockOrder(afterTick, neighborTicks);
 
-    function test_fuzz_update(uint160 sqrtPriceX96, int128 amountDelta, uint64 orderCountDelta, uint64 orderWatermark)
-        public
-    {
-        vm.assume(sqrtPriceX96 != 0);
-        ticks.update(sqrtPriceX96, amountDelta, orderCountDelta, orderWatermark);
-
-        assertEq(ticks[sqrtPriceX96].amountTotal, amountDelta);
-        assertEq(ticks[sqrtPriceX96].orderCount, orderCountDelta);
-        assertEq(ticks[sqrtPriceX96].orderWatermark, orderWatermark);
+        verifyTickLink(0, beforeTick, mediumTick);
+        verifyTickLink(beforeTick, mediumTick, afterTick);
+        verifyTickLink(mediumTick, afterTick, type(uint160).max);
     }
 }

@@ -10,7 +10,7 @@ import {PoolKey} from "./models/PoolKey.sol";
 
 /// @title PoolManager
 contract PoolManager is IPoolManager {
-    mapping(PoolId => Pool) pools;
+    mapping(PoolId => Pool) internal _pools;
 
     /// @inheritdoc IPoolManager
     function initialize(PoolKey calldata poolKey, InitializeParams calldata params) external returns (PoolId poolId) {
@@ -34,7 +34,7 @@ contract PoolManager is IPoolManager {
     }
 
     /// @inheritdoc IPoolManager
-    function removeOrder(OrderId orderId) external returns (BalanceDelta balanceDelta) {
+    function removeOrder(PoolKey calldata poolKey, OrderId orderId) external returns (BalanceDelta balanceDelta) {
         // TODO: implement
     }
 }
