@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-/// @dev Layout: 160 sqrtPriceX96 | 96 order index
+/// @dev Layout: 32 tick (uint32) | 160 pool id (PoolId) | 64 index (uint64)
 type OrderId is bytes32;
-
-using OrderIdLibrary for OrderId global;
 
 /// @title OrderIdLibrary
 library OrderIdLibrary {

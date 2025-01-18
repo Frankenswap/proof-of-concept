@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {OrderId} from "./OrderId.sol";
-
 struct Order {
-    // Amount > minimun amount in config
-    uint128 amount;
-    uint128 fillAmount;
+    address maker;
     bool zeroForOne;
-    bool initialized;
+    uint128 amount;
+    uint128 amountFilled;
 }
 
 using OrderLibrary for Order global;
