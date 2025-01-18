@@ -30,6 +30,7 @@ interface IPoolManager {
         external
         returns (BalanceDelta balanceDelta);
 
+    // TODO: do we need additional params to specify the sqrtPrice and tick where order will created or whatever sqrtPriceLimit is fine?
     struct PlaceOrderParams {
         // whether the order is token0 for token1 or vice versa
         bool zeroForOne;
