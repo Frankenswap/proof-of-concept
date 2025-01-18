@@ -16,7 +16,7 @@ using PoolKeyLibrary for PoolKey global;
 /// @title PoolKeyLibrary
 library PoolKeyLibrary {
     function toId(PoolKey calldata self) internal pure returns (PoolId poolId) {
-        assembly {
+        assembly ("memory-safe") {
             mstore(0, calldataload(add(self, 12)))
             mstore(20, calldataload(add(self, 44)))
             mstore(32, or(shl(192, calldataload(add(self, 32))), calldataload(add(self, 68))))
