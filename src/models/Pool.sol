@@ -7,8 +7,8 @@ struct Pool {
     uint160 sqrtPriceX96;
     uint160 sqrtPriceLowerX96;
     uint160 sqrtPriceUpperX96;
+    uint160 topAsk;
+    uint160 topBid;
     uint128 liquidity;
-    uint32 topAsk;
-    uint32 topBid;
-    mapping(uint32 => Tick) ticks;
+    mapping(uint160 => Tick) ticks;
 }
