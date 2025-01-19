@@ -8,19 +8,11 @@ import {PoolKey} from "../models/PoolKey.sol";
 
 /// @title IPoolManager
 interface IPoolManager {
-    struct InitializeParams {
-        // the initial square root price of the pool
-        uint160 sqrtPriceX96;
-        // the initial lower and upper bound of the liquidity
-        uint160 sqrtPriceLowerX96;
-        uint160 sqrtPriceUpperX96;
-    }
-
     /// @notice Initializes a new pool
     /// @param poolKey The key of the pool
-    /// @param params The initial parameters of the pool
+    /// @param sqrtPriceX96 The initial square root price of the pool
     /// @return poolId The id of the pool
-    function initialize(PoolKey calldata poolKey, InitializeParams calldata params) external returns (PoolId poolId);
+    function initialize(PoolKey calldata poolKey, uint160 sqrtPriceX96) external returns (PoolId poolId);
 
     /// @notice Modifies the liquidity of a pool
     /// @param poolKey The key of the pool
@@ -30,6 +22,7 @@ interface IPoolManager {
         external
         returns (BalanceDelta balanceDelta);
 
+    // TODO: do we need additional params to specify the sqrtPrice and tick where order will created or whatever sqrtPriceLimit is fine?
     struct PlaceOrderParams {
         // whether the order is token0 for token1 or vice versa
         bool zeroForOne;
@@ -42,7 +35,7 @@ interface IPoolManager {
         // the square root price at which to stop filling the order, or place an open order
         uint160 sqrtPriceLimitX96;
         // the surrounding ticks for helping newly active tick to find its place
-        uint32[] neighborTicks;
+        uint160[] neighborTicks;
     }
 
     /// @notice Places an order in the pool
@@ -55,7 +48,8 @@ interface IPoolManager {
         returns (BalanceDelta balanceDelta, OrderId orderId);
 
     /// @notice Removes an order from the pool
+    /// @param poolKey The key of the pool
     /// @param orderId The id of the order
     /// @return balanceDelta The change in balances
-    function removeOrder(OrderId orderId) external returns (BalanceDelta balanceDelta);
+    function removeOrder(PoolKey calldata poolKey, OrderId orderId) external returns (BalanceDelta balanceDelta);
 }
