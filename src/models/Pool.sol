@@ -5,10 +5,12 @@ import {Tick} from "./Tick.sol";
 
 struct Pool {
     uint160 sqrtPriceX96;
-    uint160 sqrtPriceLowerX96;
-    uint160 sqrtPriceUpperX96;
+    uint128 liquidity;
+    uint128 thresholdRatioLowerX96;
+    uint128 liquidityRangeRatioLowerX96;
+    uint128 thresholdRatioUpperX96;
+    uint128 liquidityRangeRatioUpperX96;
     uint160 topAsk;
     uint160 topBid;
-    uint128 liquidity;
     mapping(uint160 => Tick) ticks;
 }

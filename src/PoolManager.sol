@@ -13,7 +13,7 @@ contract PoolManager is IPoolManager {
     mapping(PoolId => Pool) internal _pools;
 
     /// @inheritdoc IPoolManager
-    function initialize(PoolKey calldata poolKey, InitializeParams calldata params) external returns (PoolId poolId) {
+    function initialize(PoolKey calldata poolKey, uint160 sqrtPriceX96) external returns (PoolId poolId) {
         // TODO: implement
     }
 
