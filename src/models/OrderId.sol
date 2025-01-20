@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-/// @dev Layout: 160 sqrtPrice (uint160) | 32 empty | 64 index (uint64)
+/// @dev Layout: uint160 sqrtPrice | 32 empty | uint64 index
 type OrderId is bytes32;
 
 using OrderIdLibrary for OrderId global;
 
 /// @title OrderIdLibrary
 library OrderIdLibrary {
-    uint96 internal constant MASK_64_BITS = 0xFFFFFFFFFFFFFFFF;
+    uint64 private constant MASK_64_BITS = 0xFFFFFFFFFFFFFFFF;
 
     // #### GETTERS ####
     function sqrtPriceX96(OrderId self) internal pure returns (uint160 _sqrtPriceX96) {
@@ -17,7 +17,7 @@ library OrderIdLibrary {
         }
     }
 
-    function index(OrderId self) internal pure returns (uint96 _index) {
+    function index(OrderId self) internal pure returns (uint64 _index) {
         assembly ("memory-safe") {
             _index := and(self, MASK_64_BITS)
         }
