@@ -9,5 +9,6 @@ struct Pool {
     Position position;
     uint160 topAsk;
     uint160 topBid;
+
     mapping(uint160 => Tick) ticks;
 }
