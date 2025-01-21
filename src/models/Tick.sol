@@ -17,11 +17,9 @@ using TickLibrary for Tick global;
 
 /// @title TickLibrary
 library TickLibrary {
-    function initialize(Tick storage self, uint160 prev, uint160 next, uint128 totalAmountOpen) internal {
+    function initialize(Tick storage self, uint160 prev, uint160 next) internal {
         self.prev = prev;
         self.next = next;
-        self.totalAmountOpen = totalAmountOpen;
-        self.lastOpenOrder = 0;
     }
 
     struct PlaceOrderParams {
@@ -33,14 +31,6 @@ library TickLibrary {
         uint160[] neighborTicks;
     }
 
-    function addOrder(Tick storage self, PlaceOrderParams memory params) internal returns (OrderId orderId) {
-        self.lastOpenOrder += 1;
-        self.totalAmountOpen += params.amount;
-
-        orderId = OrderIdLibrary.from(params.targetTick, self.lastOpenOrder);
-        self.orders[orderId].initialize(params.maker, params.zeroForOne, params.amount);
-    }
-
     function placeOrder(mapping(uint160 => Tick) storage self, PlaceOrderParams memory params)
         internal
         returns (OrderId orderId)
@@ -49,7 +39,7 @@ library TickLibrary {
         uint160 neighborPrev;
         uint160 neighborNext;
         uint160[] memory neighborTicks = params.neighborTicks;
-        
+
         assembly ("memory-safe") {
             let len := mload(neighborTicks)
 
@@ -103,6 +93,10 @@ library TickLibrary {
             }
         }
 
-        orderId = self[targetTick].addOrder(params);
+        self[targetTick].lastOpenOrder += 1;
+        self[targetTick].totalAmountOpen += params.amount;
+
+        orderId = OrderIdLibrary.from(params.targetTick, self[targetTick].lastOpenOrder);
+        self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, params.amount);
     }
 }

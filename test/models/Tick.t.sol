@@ -14,8 +14,8 @@ contract TickTest is Test {
     Tick public tick;
 
     function setUp() public {
-        ticks[0].initialize(0, type(uint160).max, 1);
-        ticks[type(uint160).max].initialize(0, type(uint160).max, 1);
+        ticks[0].initialize(0, type(uint160).max);
+        ticks[type(uint160).max].initialize(0, type(uint160).max);
     }
 
     function placeMockOrder(uint160 targetTick, uint160[] memory neighborTicks) internal returns (OrderId orderId) {
@@ -46,12 +46,12 @@ contract TickTest is Test {
         }
     }
 
-    function verfiyLink(uint256 tickNumber) view internal {
+    function verfiyLink(uint256 tickNumber) internal view {
         uint160 nextTick = 0;
         for (uint256 i = 0; i < tickNumber; i++) {
             nextTick = ticks[nextTick].next;
         }
-        
+
         assertEq(nextTick, type(uint160).max);
 
         uint160 prevTick = type(uint160).max;
@@ -60,6 +60,27 @@ contract TickTest is Test {
         }
 
         assertEq(prevTick, 0);
+    }
+
+    function test_palceOrder_next() public {
+        uint160[] memory neighborTicks = new uint160[](0);
+        OrderId orderId = placeMockOrder(100, neighborTicks);
+
+        verifyTickLink(0, 100, type(uint160).max);
+        assertEq(orderId.index(), 1);
+        assertEq(orderId.sqrtPriceX96(), 100);
+        assertEq(ticks[100].totalAmountOpen, 100);
+        assertEq(ticks[100].lastOpenOrder, 1);
+        assertEq(ticks[100].lastCloseOrder, 0);
+
+        assertEq(ticks[100].orders[orderId].maker, address(this));
+        assertEq(ticks[100].orders[orderId].zeroForOne, true);
+        assertEq(ticks[100].orders[orderId].amount, 100);
+
+        orderId = placeMockOrder(100, neighborTicks);
+        assertEq(ticks[100].totalAmountOpen, 200);
+        assertEq(ticks[100].lastOpenOrder, 2);
+        assertEq(ticks[100].orders[orderId].amount, 100);
     }
 
     function test_fuzz_placeOrder_next(uint96 targetTick, uint32 tickDelta, uint32 otherTickDelta) public {
