@@ -11,7 +11,6 @@ contract TickTest is Test {
 
     mapping(uint160 => Tick) public ticks;
     mapping(OrderId => Order) public orders;
-    Tick public tick;
 
     function setUp() public {
         ticks[0].initialize(0, type(uint160).max);
@@ -29,6 +28,12 @@ contract TickTest is Test {
         });
 
         return ticks.placeOrder(params);
+    }
+
+    function verifyMockOrder(OrderId orderId, uint160 tick) internal view {
+        assertEq(ticks[tick].orders[orderId].maker, address(this));
+        assertEq(ticks[tick].orders[orderId].zeroForOne, true);
+        assertEq(ticks[tick].orders[orderId].amount, 100);
     }
 
     function verifyTickLink(uint160 prevTick, uint160 targetTick, uint160 nextTick) internal view {
@@ -73,26 +78,35 @@ contract TickTest is Test {
         assertEq(ticks[100].lastOpenOrder, 1);
         assertEq(ticks[100].lastCloseOrder, 0);
 
-        assertEq(ticks[100].orders[orderId].maker, address(this));
-        assertEq(ticks[100].orders[orderId].zeroForOne, true);
-        assertEq(ticks[100].orders[orderId].amount, 100);
+        verifyMockOrder(orderId, 100);
 
         orderId = placeMockOrder(100, neighborTicks);
         assertEq(ticks[100].totalAmountOpen, 200);
         assertEq(ticks[100].lastOpenOrder, 2);
         assertEq(ticks[100].orders[orderId].amount, 100);
+        verifyMockOrder(orderId, 100);
     }
 
-    function test_fuzz_placeOrder_next(uint96 targetTick, uint32 tickDelta, uint32 otherTickDelta) public {
+    function test_placeOrder_prev() public {
         uint160[] memory neighborTicks = new uint160[](0);
 
-        uint160 beforeTick = targetTick;
-        uint160 mediumTick = uint160(targetTick) + tickDelta;
-        uint160 afterTick = uint160(targetTick) + tickDelta + otherTickDelta;
+        OrderId orderId = placeMockOrder(1000, neighborTicks);
+        placeMockOrder(500, neighborTicks);
+        placeMockOrder(100, neighborTicks);
 
-        placeMockOrder(beforeTick, neighborTicks);
-        placeMockOrder(mediumTick, neighborTicks);
-        placeMockOrder(afterTick, neighborTicks);
+        verifyMockOrder(orderId, 1000);
+
+        verifyTickLink(0, 100, 500);
+        verifyTickLink(100, 500, 1000);
+        verifyTickLink(500, 1000, type(uint160).max);
+    }
+
+    function test_fuzz_placeOrder(uint160 tick1, uint160 tick2, uint160 tick3) public {
+        uint160[] memory neighborTicks = new uint160[](0);
+
+        placeMockOrder(tick1, neighborTicks);
+        placeMockOrder(tick2, neighborTicks);
+        placeMockOrder(tick3, neighborTicks);
 
         verfiyLink(4);
     }

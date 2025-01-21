@@ -83,13 +83,34 @@ library TickLibrary {
                 nextTick = self[nextTick].next;
             }
 
+            // If nextTick == targetTick, targetTick is in the tick link, so do nothing
+            // If nextTick != targetTick, targetTick is not in the tick link, so update the tick link
             if (nextTick != targetTick) {
                 uint160 cachePrevTick = self[nextTick].prev;
 
-                self[targetTick].next = nextTick;
-                self[targetTick].prev = cachePrevTick;
                 self[cachePrevTick].next = targetTick;
+                self[targetTick].next = nextTick;
+
                 self[nextTick].prev = targetTick;
+                self[targetTick].prev = cachePrevTick;
+            }
+        }
+
+        if (neighborTick > targetTick) {
+            uint160 prevTick = self[neighborTick].prev;
+
+            while (prevTick > targetTick) {
+                prevTick = self[prevTick].prev;
+            }
+
+            if (prevTick != targetTick) {
+                uint160 cacheNextTick = self[prevTick].next;
+
+                self[prevTick].next = targetTick;
+                self[targetTick].next = cacheNextTick;
+
+                self[cacheNextTick].prev = targetTick;
+                self[targetTick].prev = prevTick;
             }
         }
 
