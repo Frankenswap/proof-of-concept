@@ -46,6 +46,22 @@ contract TickTest is Test {
         }
     }
 
+    function verfiyLink(uint256 tickNumber) view internal {
+        uint160 nextTick = 0;
+        for (uint256 i = 0; i < tickNumber; i++) {
+            nextTick = ticks[nextTick].next;
+        }
+        
+        assertEq(nextTick, type(uint160).max);
+
+        uint160 prevTick = type(uint160).max;
+        for (uint256 i = 0; i < tickNumber; i++) {
+            prevTick = ticks[prevTick].prev;
+        }
+
+        assertEq(prevTick, 0);
+    }
+
     function test_fuzz_placeOrder_next(uint96 targetTick, uint32 tickDelta, uint32 otherTickDelta) public {
         uint160[] memory neighborTicks = new uint160[](0);
 
@@ -57,8 +73,6 @@ contract TickTest is Test {
         placeMockOrder(mediumTick, neighborTicks);
         placeMockOrder(afterTick, neighborTicks);
 
-        verifyTickLink(0, beforeTick, mediumTick);
-        verifyTickLink(beforeTick, mediumTick, afterTick);
-        verifyTickLink(mediumTick, afterTick, type(uint160).max);
+        verfiyLink(4);
     }
 }
