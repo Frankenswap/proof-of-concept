@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import {Order} from "./Order.sol";
 import {OrderId} from "./OrderId.sol";
+import {SqrtPrice} from "./SqrtPrice.sol";
 
-struct Tick {
-    uint160 prev;
-    uint160 next;
-    uint128 totalAmountOpen;
-    uint64 lastOpenOrder;
+struct SqrtPriceLevel {
+    SqrtPrice prev;
+    SqrtPrice next;
+    uint128 totalOpenAmount;
+    uint64 lastOpenOder;
     uint64 lastCloseOrder;
     mapping(OrderId => Order) orders;
 }

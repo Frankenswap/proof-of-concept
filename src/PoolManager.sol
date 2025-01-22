@@ -7,34 +7,46 @@ import {OrderId} from "./models/OrderId.sol";
 import {Pool} from "./models/Pool.sol";
 import {PoolId} from "./models/PoolId.sol";
 import {PoolKey} from "./models/PoolKey.sol";
+import {SqrtPrice} from "./models/SqrtPrice.sol";
 
 /// @title PoolManager
 contract PoolManager is IPoolManager {
-    mapping(PoolId => Pool) internal _pools;
+    mapping(PoolId => Pool) internal pools;
 
     /// @inheritdoc IPoolManager
-    function initialize(PoolKey calldata poolKey, uint160 sqrtPriceX96) external returns (PoolId poolId) {
-        // TODO: implement
+    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice)
+        external
+        returns (PoolId poolId, address liquidityToken)
+    {
+        // TODO: Implement
     }
 
     /// @inheritdoc IPoolManager
-    function modifyLiquidity(PoolKey calldata poolKey, int128 liquidityDelta)
+    function mint(PoolKey calldata poolKey, uint128 amount0, uint128 amount1)
         external
-        returns (BalanceDelta balanceDelta)
+        returns (BalanceDelta balanceDelta, int128 liquidityDelta)
     {
-        // TODO: implement
+        // TODO: Implement
+    }
+
+    /// @inheritdoc IPoolManager
+    function burn(PoolKey calldata poolKey, uint128 liquidity)
+        external
+        returns (BalanceDelta balanceDelta, int128 liquidityDelta)
+    {
+        // TODO: Implement
     }
 
     /// @inheritdoc IPoolManager
     function placeOrder(PoolKey calldata poolKey, PlaceOrderParams calldata params)
         external
-        returns (BalanceDelta balanceDelta, OrderId orderId)
+        returns (OrderId orderId, BalanceDelta balanceDelta)
     {
-        // TODO: implement
+        // TODO: Implement
     }
 
     /// @inheritdoc IPoolManager
     function removeOrder(PoolKey calldata poolKey, OrderId orderId) external returns (BalanceDelta balanceDelta) {
-        // TODO: implement
+        // TODO: Implement
     }
 }

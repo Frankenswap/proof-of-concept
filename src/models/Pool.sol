@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {Position} from "./Position.sol";
-import {Tick} from "./Tick.sol";
+import {SqrtPrice} from "./SqrtPrice.sol";
+import {SqrtPriceLevel} from "./SqrtPriceLevel.sol";
 
 struct Pool {
-    uint160 sqrtPriceX96;
-    Position position;
-    uint160 topAsk;
-    uint160 topBid;
-
-    mapping(uint160 => Tick) ticks;
+    uint128 reserve0;
+    uint128 reserve1;
+    address liquidityToken;
+    SqrtPrice sqrtPrice;
+    uint128 marketDepth;
+    uint64 thresholdRatioLower;
+    uint64 thresholdRatioUpper;
+    SqrtPrice bestAsk;
+    SqrtPrice bestBid;
+    mapping(SqrtPrice => SqrtPriceLevel) sqrtPriceLevels;
 }
