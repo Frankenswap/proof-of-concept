@@ -18,12 +18,12 @@ using SqrtPriceLevelLibrary for SqrtPriceLevel global;
 
 /// @title SqrtPriceLevelLibrary
 library SqrtPriceLevelLibrary {
-    function initialize(mapping(uint160 => SqrtPriceLevel) storage self) internal {
-        if (self[0].next != 0) return;
-        if (self[type(uint160).max].next != 0) return;
-        
-        self[0].next = type(uint160).max;
-        self[type(uint160).max].next = type(uint160).max;
+    function initialize(mapping(SqrtPrice => SqrtPriceLevel) storage self) internal {
+        if (self[SqrtPrice.wrap(0)].next != SqrtPrice.wrap(0)) return;
+        if (self[SqrtPrice.wrap(type(uint160).max)].next != SqrtPrice.wrap(0)) return;
+
+        self[SqrtPrice.wrap(0)].next = SqrtPrice.wrap(type(uint160).max);
+        self[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(type(uint160).max);
     }
 
     struct PlaceOrderParams {
@@ -35,14 +35,14 @@ library SqrtPriceLevelLibrary {
         SqrtPrice[] neighborTicks;
     }
 
-    function placeOrder(mapping(uint160 => SqrtPriceLevel) storage self, PlaceOrderParams memory params)
+    function placeOrder(mapping(SqrtPrice => SqrtPriceLevel) storage self, PlaceOrderParams memory params)
         internal
         returns (OrderId orderId)
     {
-        uint160 neighborTick;
-        uint160 neighborPrev;
-        uint160 neighborNext;
-        uint160[] memory neighborTicks = params.neighborTicks;
+        SqrtPrice neighborTick;
+        SqrtPrice neighborPrev;
+        SqrtPrice neighborNext;
+        SqrtPrice[] memory neighborTicks = params.neighborTicks;
 
         assembly ("memory-safe") {
             let len := mload(neighborTicks)
@@ -78,10 +78,10 @@ library SqrtPriceLevelLibrary {
             }
         }
 
-        uint160 targetTick = params.targetTick;
+        SqrtPrice targetTick = params.targetTick;
 
         if (neighborTick < targetTick) {
-            uint160 nextTick = self[neighborTick].next;
+            SqrtPrice nextTick = self[neighborTick].next;
 
             while (nextTick < targetTick) {
                 nextTick = self[nextTick].next;
@@ -90,7 +90,7 @@ library SqrtPriceLevelLibrary {
             // If nextTick == targetTick, targetTick is in the tick link, so do nothing
             // If nextTick != targetTick, targetTick is not in the tick link, so update the tick link
             if (nextTick != targetTick) {
-                uint160 cachePrevTick = self[nextTick].prev;
+                SqrtPrice cachePrevTick = self[nextTick].prev;
 
                 self[cachePrevTick].next = targetTick;
                 self[targetTick].next = nextTick;
@@ -101,14 +101,14 @@ library SqrtPriceLevelLibrary {
         }
 
         if (neighborTick > targetTick) {
-            uint160 prevTick = self[neighborTick].prev;
+            SqrtPrice prevTick = self[neighborTick].prev;
 
             while (prevTick > targetTick) {
                 prevTick = self[prevTick].prev;
             }
 
             if (prevTick != targetTick) {
-                uint160 cacheNextTick = self[prevTick].next;
+                SqrtPrice cacheNextTick = self[prevTick].next;
 
                 self[prevTick].next = targetTick;
                 self[targetTick].next = cacheNextTick;
@@ -119,7 +119,7 @@ library SqrtPriceLevelLibrary {
         }
 
         self[targetTick].lastOpenOrder += 1;
-        self[targetTick].totalAmountOpen += params.amount;
+        self[targetTick].totalOpenAmount += params.amount;
 
         orderId = OrderIdLibrary.from(params.targetTick, self[targetTick].lastOpenOrder);
         self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, params.amount);
