@@ -17,9 +17,12 @@ using TickLibrary for Tick global;
 
 /// @title TickLibrary
 library TickLibrary {
-    function initialize(Tick storage self, uint160 prev, uint160 next) internal {
-        self.prev = prev;
-        self.next = next;
+    function initialize(mapping(uint160 => Tick) storage self) internal {
+        if (self[0].next != 0) return;
+        if (self[type(uint160).max].next != 0) return;
+        
+        self[0].next = type(uint160).max;
+        self[type(uint160).max].next = type(uint160).max;
     }
 
     struct PlaceOrderParams {

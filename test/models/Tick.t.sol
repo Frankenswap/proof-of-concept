@@ -13,8 +13,7 @@ contract TickTest is Test {
     mapping(OrderId => Order) public orders;
 
     function setUp() public {
-        ticks[0].initialize(0, type(uint160).max);
-        ticks[type(uint160).max].initialize(0, type(uint160).max);
+        ticks.initialize();
     }
 
     function placeMockOrder(uint160 targetTick, uint160[] memory neighborTicks) internal returns (OrderId orderId) {
@@ -65,6 +64,16 @@ contract TickTest is Test {
         }
 
         assertEq(prevTick, 0);
+    }
+
+    function test_initialize_AlreadyInitialized() public {
+        ticks[0].next = 100;
+        ticks.initialize();
+        assertEq(ticks[0].next, 100);
+
+        ticks[type(uint160).max].next = 100;
+        ticks.initialize();
+        assertEq(ticks[type(uint160).max].next, 100);
     }
 
     function test_palceOrder_next() public {
