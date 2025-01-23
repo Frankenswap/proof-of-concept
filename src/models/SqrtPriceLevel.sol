@@ -3,21 +3,22 @@ pragma solidity ^0.8.0;
 
 import {Order} from "./Order.sol";
 import {OrderId, OrderIdLibrary} from "./OrderId.sol";
+import {SqrtPrice} from "./SqrtPrice.sol";
 
-struct Tick {
-    uint160 prev;
-    uint160 next;
-    uint128 totalAmountOpen;
+struct SqrtPriceLevel {
+    SqrtPrice prev;
+    SqrtPrice next;
+    uint128 totalOpenAmount;
     uint64 lastOpenOrder;
     uint64 lastCloseOrder;
     mapping(OrderId => Order) orders;
 }
 
-using TickLibrary for Tick global;
+using SqrtPriceLevelLibrary for SqrtPriceLevel global;
 
-/// @title TickLibrary
-library TickLibrary {
-    function initialize(mapping(uint160 => Tick) storage self) internal {
+/// @title SqrtPriceLevelLibrary
+library SqrtPriceLevelLibrary {
+    function initialize(mapping(uint160 => SqrtPriceLevel) storage self) internal {
         if (self[0].next != 0) return;
         if (self[type(uint160).max].next != 0) return;
         
@@ -29,12 +30,12 @@ library TickLibrary {
         address maker;
         bool zeroForOne;
         uint128 amount;
-        uint160 targetTick;
-        uint160 currentTick;
-        uint160[] neighborTicks;
+        SqrtPrice targetTick;
+        SqrtPrice currentTick;
+        SqrtPrice[] neighborTicks;
     }
 
-    function placeOrder(mapping(uint160 => Tick) storage self, PlaceOrderParams memory params)
+    function placeOrder(mapping(uint160 => SqrtPriceLevel) storage self, PlaceOrderParams memory params)
         internal
         returns (OrderId orderId)
     {

@@ -2,14 +2,14 @@
 pragma solidity =0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {Tick, TickLibrary} from "../../src/models/Tick.sol";
+import {SqrtPriceLevel, SqrtPriceLevelLibrary} from "../../src/models/SqrtPriceLevel.sol";
 import {Order} from "../../src/models/Order.sol";
 import {OrderId} from "../../src/models/OrderId.sol";
 
-contract TickTest is Test {
-    using TickLibrary for mapping(uint160 => Tick);
+contract SqrtPriceLevelTest is Test {
+    using SqrtPriceLevelLibrary for mapping(uint160 => SqrtPriceLevel);
 
-    mapping(uint160 => Tick) public ticks;
+    mapping(uint160 => SqrtPriceLevel) public ticks;
     mapping(OrderId => Order) public orders;
 
     function setUp() public {
@@ -17,7 +17,7 @@ contract TickTest is Test {
     }
 
     function placeMockOrder(uint160 targetTick, uint160[] memory neighborTicks) internal returns (OrderId orderId) {
-        TickLibrary.PlaceOrderParams memory params = TickLibrary.PlaceOrderParams({
+        SqrtPriceLevelLibrary.PlaceOrderParams memory params = SqrtPriceLevelLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
             amount: 100,
