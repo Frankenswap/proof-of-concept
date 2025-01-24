@@ -3,24 +3,17 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {OrderId, OrderIdLibrary} from "../../src/models/OrderId.sol";
+import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
 
 contract OrderIdTest is Test {
-    function test_orderId_constants_masks() public pure {
-        assertEq(OrderIdLibrary.MASK_64_BITS, type(uint64).max);
-    }
+    function test_fuzz_orderId_pack_unpack(SqrtPrice sqrtPrice, uint64 index) public pure {
+        OrderId orderId = OrderIdLibrary.from(sqrtPrice, index);
 
-    function test_fuzz_orderId_pack_unpack(uint160 sqrtPriceX96, uint64 index) public pure {
-        OrderId orderId = OrderIdLibrary.from(sqrtPriceX96, index);
-
-        assertEq(orderId.sqrtPriceX96(), sqrtPriceX96);
+        assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), SqrtPrice.unwrap(sqrtPrice));
         assertEq(orderId.index(), index);
     }
 
-    function test_fuzz_orderId_next(uint160 sqrtPriceX96, uint64 index) public pure {
-        OrderId orderId = OrderIdLibrary.from(sqrtPriceX96, index);
-
-        unchecked {
-            assertEq(orderId.next().index(), uint64(orderId.index() + 1));
-        }
+    function test_fuzz_orderId_next(OrderId orderId) public pure {
+        assertEq(orderId.next().index(), orderId.index() + 1);
     }
 }
