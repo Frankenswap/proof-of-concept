@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.27;
 
 import {Order} from "./Order.sol";
 import {OrderId, OrderIdLibrary} from "./OrderId.sol";
@@ -18,9 +18,11 @@ using SqrtPriceLevelLibrary for SqrtPriceLevel global;
 
 /// @title SqrtPriceLevelLibrary
 library SqrtPriceLevelLibrary {
+    error SqrtPriceLevelAlreadyInitialized();
+
     function initialize(mapping(SqrtPrice => SqrtPriceLevel) storage self) internal {
-        if (self[SqrtPrice.wrap(0)].next != SqrtPrice.wrap(0)) return;
-        if (self[SqrtPrice.wrap(type(uint160).max)].next != SqrtPrice.wrap(0)) return;
+        require(self[SqrtPrice.wrap(0)].next == SqrtPrice.wrap(0), SqrtPriceLevelAlreadyInitialized());
+        require(self[SqrtPrice.wrap(type(uint160).max)].next == SqrtPrice.wrap(0), SqrtPriceLevelAlreadyInitialized());
 
         self[SqrtPrice.wrap(0)].next = SqrtPrice.wrap(type(uint160).max);
         self[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(type(uint160).max);
