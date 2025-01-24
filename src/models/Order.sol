@@ -7,3 +7,14 @@ struct Order {
     uint128 amount;
     uint128 amountFilled;
 }
+
+using OrderLibrary for Order global;
+
+library OrderLibrary {
+    function initialize(Order storage self, address maker, bool zeroForOne, uint128 amount) internal {
+        self.maker = maker;
+        self.zeroForOne = zeroForOne;
+        self.amount = amount;
+        self.amountFilled = 0;
+    }
+}

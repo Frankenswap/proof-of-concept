@@ -14,6 +14,8 @@ contract OrderIdTest is Test {
     }
 
     function test_fuzz_orderId_next(OrderId orderId) public pure {
-        assertEq(orderId.next().index(), orderId.index() + 1);
+        unchecked {
+            assertEq(orderId.next().index(), orderId.index() + 1);
+        }
     }
 }
