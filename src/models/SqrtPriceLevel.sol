@@ -9,7 +9,7 @@ struct SqrtPriceLevel {
     SqrtPrice prev;
     SqrtPrice next;
     uint128 totalOpenAmount;
-    uint64 lastOpenOder;
-    uint64 lastCloseOrder;
+    uint64 lastOpenOrderIndex;
+    uint64 lastCloseOrderIndex;
     mapping(OrderId => Order) orders;
 }
