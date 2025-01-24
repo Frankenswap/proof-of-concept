@@ -15,6 +15,15 @@ using PoolKeyLibrary for PoolKey global;
 
 /// @title PoolKeyLibrary
 library PoolKeyLibrary {
+    /// @notice Thrown when token0 is not less than token1
+    error TokensEqualOrMisordered();
+
+    /// @notice Thrown when configs contract is not set
+    error ConfigsNotSet();
+
+    /// @notice Derive the pool id from the pool key
+    /// @param self The pool key
+    /// @return poolId The pool id
     function toId(PoolKey calldata self) internal pure returns (PoolId poolId) {
         assembly ("memory-safe") {
             mstore(0, calldataload(add(self, 12)))
@@ -23,5 +32,12 @@ library PoolKeyLibrary {
 
             poolId := keccak256(0, 60)
         }
+    }
+
+    /// @notice Validate the pool key
+    /// @param self The pool key
+    function validate(PoolKey calldata self) internal pure {
+        require(self.token0 < self.token1, TokensEqualOrMisordered());
+        require(address(self.configs) != address(0), ConfigsNotSet());
     }
 }

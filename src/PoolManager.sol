@@ -2,37 +2,52 @@
 pragma solidity =0.8.28;
 
 import {IPoolManager} from "./interfaces/IPoolManager.sol";
+import {IShareToken} from "./interfaces/IShareToken.sol";
 import {BalanceDelta} from "./models/BalanceDelta.sol";
 import {OrderId} from "./models/OrderId.sol";
 import {Pool} from "./models/Pool.sol";
 import {PoolId} from "./models/PoolId.sol";
 import {PoolKey} from "./models/PoolKey.sol";
+import {Position} from "./models/Position.sol";
 import {SqrtPrice} from "./models/SqrtPrice.sol";
+import {ShareToken} from "./ShareToken.sol";
 
 /// @title PoolManager
 contract PoolManager is IPoolManager {
-    mapping(PoolId => Pool) internal pools;
+    mapping(PoolId => Pool) private _pools;
+
+    modifier validatePoolKey(PoolKey calldata poolKey) {
+        poolKey.validate();
+        _;
+    }
 
     /// @inheritdoc IPoolManager
     function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice)
         external
-        returns (PoolId poolId, address liquidityToken)
+        validatePoolKey(poolKey)
+        returns (PoolId poolId, IShareToken shareToken)
     {
-        // TODO: Implement
+        poolId = poolKey.toId();
+        shareToken = new ShareToken{salt: PoolId.unwrap(poolId)}();
+        (Position position) = _pools[poolId].initialize(shareToken, sqrtPrice, poolKey.configs);
+
+        emit Initialize(poolId, poolKey.token0, poolKey.token1, poolKey.configs, shareToken, sqrtPrice, position);
     }
 
     /// @inheritdoc IPoolManager
     function mint(PoolKey calldata poolKey, uint128 amount0, uint128 amount1)
         external
-        returns (BalanceDelta balanceDelta, int128 liquidityDelta)
+        validatePoolKey(poolKey)
+        returns (BalanceDelta balanceDelta, int128 shareDelta)
     {
         // TODO: Implement
     }
 
     /// @inheritdoc IPoolManager
-    function burn(PoolKey calldata poolKey, uint128 liquidity)
+    function burn(PoolKey calldata poolKey, uint128 share)
         external
-        returns (BalanceDelta balanceDelta, int128 liquidityDelta)
+        validatePoolKey(poolKey)
+        returns (BalanceDelta balanceDelta, int128 shareDelta)
     {
         // TODO: Implement
     }
@@ -40,13 +55,18 @@ contract PoolManager is IPoolManager {
     /// @inheritdoc IPoolManager
     function placeOrder(PoolKey calldata poolKey, PlaceOrderParams calldata params)
         external
+        validatePoolKey(poolKey)
         returns (OrderId orderId, BalanceDelta balanceDelta)
     {
         // TODO: Implement
     }
 
     /// @inheritdoc IPoolManager
-    function removeOrder(PoolKey calldata poolKey, OrderId orderId) external returns (BalanceDelta balanceDelta) {
+    function removeOrder(PoolKey calldata poolKey, OrderId orderId)
+        external
+        validatePoolKey(poolKey)
+        returns (BalanceDelta balanceDelta)
+    {
         // TODO: Implement
     }
 }

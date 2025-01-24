@@ -9,8 +9,8 @@ struct SqrtPriceLevel {
     SqrtPrice prev;
     SqrtPrice next;
     uint128 totalOpenAmount;
-    uint64 lastOpenOrder;
-    uint64 lastCloseOrder;
+    uint64 lastOpenOrderIndex;
+    uint64 lastCloseOrderIndex;
     mapping(OrderId => Order) orders;
 }
 
@@ -120,10 +120,10 @@ library SqrtPriceLevelLibrary {
             }
         }
 
-        self[targetTick].lastOpenOrder += 1;
+        self[targetTick].lastOpenOrderIndex += 1;
         self[targetTick].totalOpenAmount += params.amount;
 
-        orderId = OrderIdLibrary.from(params.targetTick, self[targetTick].lastOpenOrder);
+        orderId = OrderIdLibrary.from(params.targetTick, self[targetTick].lastOpenOrderIndex);
         self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, params.amount);
     }
 }

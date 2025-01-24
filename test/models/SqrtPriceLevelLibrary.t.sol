@@ -91,14 +91,14 @@ contract SqrtPriceLevelTest is Test {
         assertEq(orderId.index(), 1);
         assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), 100);
         assertEq(ticks[targetTick].totalOpenAmount, 100);
-        assertEq(ticks[targetTick].lastOpenOrder, 1);
-        assertEq(ticks[targetTick].lastCloseOrder, 0);
+        assertEq(ticks[targetTick].lastOpenOrderIndex, 1);
+        assertEq(ticks[targetTick].lastCloseOrderIndex, 0);
 
         verifyMockOrder(orderId, targetTick);
 
         orderId = placeMockOrder(targetTick, neighborTicks);
         assertEq(ticks[targetTick].totalOpenAmount, 200);
-        assertEq(ticks[targetTick].lastOpenOrder, 2);
+        assertEq(ticks[targetTick].lastOpenOrderIndex, 2);
         assertEq(ticks[targetTick].orders[orderId].amount, 100);
         verifyMockOrder(orderId, targetTick);
     }
