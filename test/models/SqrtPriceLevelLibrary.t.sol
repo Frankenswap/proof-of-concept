@@ -72,11 +72,13 @@ contract SqrtPriceLevelTest is Test {
 
     function test_initialize_AlreadyInitialized() public {
         ticks[SqrtPrice.wrap(0)].next = SqrtPrice.wrap(100);
+        vm.expectRevert(SqrtPriceLevelLibrary.SqrtPriceLevelAlreadyInitialized.selector);
         ticks.initialize();
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), 100);
 
         ticks[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(100);
         ticks.initialize();
+        vm.expectRevert(SqrtPriceLevelLibrary.SqrtPriceLevelAlreadyInitialized.selector);
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(type(uint160).max)].next), 100);
     }
 
