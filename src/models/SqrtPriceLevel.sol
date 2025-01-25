@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {Order} from "./Order.sol";
 import {OrderId, OrderIdLibrary} from "./OrderId.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
+import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
+import {SafeCast} from "../library/SafeCast.sol";
 
 struct SqrtPriceLevel {
     SqrtPrice prev;
@@ -18,6 +20,8 @@ using SqrtPriceLevelLibrary for SqrtPriceLevel global;
 
 /// @title SqrtPriceLevelLibrary
 library SqrtPriceLevelLibrary {
+    using SafeCast for uint128;
+
     function initialize(mapping(SqrtPrice => SqrtPriceLevel) storage self) internal {
         if (self[SqrtPrice.wrap(0)].next != SqrtPrice.wrap(0)) return;
         if (self[SqrtPrice.wrap(type(uint160).max)].next != SqrtPrice.wrap(0)) return;
@@ -123,5 +127,47 @@ library SqrtPriceLevelLibrary {
 
         orderId = OrderIdLibrary.from(params.targetTick, self[targetTick].lastOpenOrder);
         self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, params.amount);
+    }
+
+    function removeOrder(mapping(SqrtPrice => SqrtPriceLevel) storage self, OrderId orderId)
+        internal
+        returns (BalanceDelta delta)
+    {
+        SqrtPrice sqrtPrice = OrderIdLibrary.sqrtPrice(orderId);
+        uint64 orderIdIndex = OrderIdLibrary.index(orderId);
+        uint64 lastCloseOrder = self[sqrtPrice].lastCloseOrder;
+
+        Order memory order = self[sqrtPrice].orders[orderId];
+
+        if (orderIdIndex < lastCloseOrder) {
+            delta = order.zeroForOne
+                ? toBalanceDelta(0, order.amount.toInt128())
+                : toBalanceDelta(order.amount.toInt128(), 0);
+        } else {
+            // lastOpenOrder and lastCloseOrder does not need to be updated.
+            // totalOpenAmount should update
+            // If updated totalOpenAmount == 0, should remove the sqrtPrice level in linked list
+
+            uint128 orderRemaining = order.amount - order.amountFilled;
+            uint128 cacheTotalOpenAmount = self[sqrtPrice].totalOpenAmount - orderRemaining;
+
+            if (cacheTotalOpenAmount == 0) {
+                SqrtPrice cachePrevTick = self[sqrtPrice].prev;
+                SqrtPrice cacheNextTick = self[sqrtPrice].next;
+
+                self[cachePrevTick].next = cacheNextTick;
+                self[cacheNextTick].prev = cachePrevTick;
+            }
+
+            self[sqrtPrice].totalOpenAmount = cacheTotalOpenAmount;
+
+            int128 amountDelta = orderRemaining.toInt128();
+
+            delta = order.zeroForOne
+                ? toBalanceDelta(amountDelta, order.amountFilled.toInt128())
+                : toBalanceDelta(order.amountFilled.toInt128(), amountDelta);
+        }
+
+        delete self[OrderIdLibrary.sqrtPrice(orderId)].orders[orderId];
     }
 }
