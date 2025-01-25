@@ -5,7 +5,7 @@ import {Order} from "./Order.sol";
 import {OrderId, OrderIdLibrary} from "./OrderId.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
 
-struct SqrtPriceLevel {
+struct OrderLevel {
     SqrtPrice prev;
     SqrtPrice next;
     uint128 totalOpenAmount;
@@ -14,15 +14,15 @@ struct SqrtPriceLevel {
     mapping(OrderId => Order) orders;
 }
 
-using SqrtPriceLevelLibrary for SqrtPriceLevel global;
+using OrderLevelLibrary for OrderLevel global;
 
-/// @title SqrtPriceLevelLibrary
-library SqrtPriceLevelLibrary {
-    error SqrtPriceLevelAlreadyInitialized();
+/// @title OrderLevelLibrary
+library OrderLevelLibrary {
+    error OrderLevelAlreadyInitialized();
 
-    function initialize(mapping(SqrtPrice => SqrtPriceLevel) storage self) internal {
-        require(self[SqrtPrice.wrap(0)].next == SqrtPrice.wrap(0), SqrtPriceLevelAlreadyInitialized());
-        require(self[SqrtPrice.wrap(type(uint160).max)].next == SqrtPrice.wrap(0), SqrtPriceLevelAlreadyInitialized());
+    function initialize(mapping(SqrtPrice => OrderLevel) storage self) internal {
+        require(self[SqrtPrice.wrap(0)].next == SqrtPrice.wrap(0), OrderLevelAlreadyInitialized());
+        require(self[SqrtPrice.wrap(type(uint160).max)].next == SqrtPrice.wrap(0), OrderLevelAlreadyInitialized());
 
         self[SqrtPrice.wrap(0)].next = SqrtPrice.wrap(type(uint160).max);
         self[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(type(uint160).max);
@@ -37,7 +37,7 @@ library SqrtPriceLevelLibrary {
         SqrtPrice[] neighborTicks;
     }
 
-    function placeOrder(mapping(SqrtPrice => SqrtPriceLevel) storage self, PlaceOrderParams memory params)
+    function placeOrder(mapping(SqrtPrice => OrderLevel) storage self, PlaceOrderParams memory params)
         internal
         returns (OrderId orderId)
     {

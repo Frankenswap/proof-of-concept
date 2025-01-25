@@ -36,7 +36,7 @@ library PoolKeyLibrary {
 
     /// @notice Validate the pool key
     /// @param self The pool key
-    function validate(PoolKey calldata self) internal pure {
+    function validate(PoolKey memory self) internal pure {
         require(self.token0 < self.token1, TokensEqualOrMisordered());
         require(address(self.configs) != address(0), ConfigsNotSet());
     }

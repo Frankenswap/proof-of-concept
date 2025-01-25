@@ -3,10 +3,10 @@ pragma solidity =0.8.28;
 
 import {IConfigs} from "../interfaces/IConfigs.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
-import {Position} from "./Position.sol";
+import {Position, PositionLibrary} from "./Position.sol";
 import {Reserve} from "./Reserve.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
-import {SqrtPriceLevel, SqrtPriceLevelLibrary} from "./SqrtPriceLevel.sol";
+import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 
 struct Pool {
     Reserve reserve;
@@ -15,7 +15,7 @@ struct Pool {
     Position position;
     SqrtPrice bestAsk;
     SqrtPrice bestBid;
-    mapping(SqrtPrice => SqrtPriceLevel) sqrtPriceLevels;
+    mapping(SqrtPrice => OrderLevel) orderLevels;
 }
 
 using PoolLibrary for Pool global;
@@ -28,7 +28,7 @@ library PoolLibrary {
     /// @notice Thrown when the square root price is zero
     error SqrtPriceCannotBeZero();
 
-    using SqrtPriceLevelLibrary for mapping(SqrtPrice => SqrtPriceLevel);
+    using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
 
     /// @notice Initialize the pool
     /// @param self The pool
@@ -44,14 +44,14 @@ library PoolLibrary {
 
         (uint32 rangeRatioLower, uint32 rangeRatioUpper, uint32 thresholdRatioLower, uint32 thresholdRatioUpper) =
             configs.getPositionRatios(sqrtPrice, Reserve.wrap(0));
-        position.setLiquidityAndRatios(0, rangeRatioLower, rangeRatioUpper, thresholdRatioLower, thresholdRatioUpper);
+        position = PositionLibrary.from(0, rangeRatioLower, rangeRatioUpper, thresholdRatioLower, thresholdRatioUpper);
 
         self.shareToken = shareToken;
         self.sqrtPrice = sqrtPrice;
         self.position = position;
         self.bestAsk = SqrtPrice.wrap(0);
         self.bestBid = SqrtPrice.wrap(type(uint160).max);
-        self.sqrtPriceLevels.initialize();
+        self.orderLevels.initialize();
     }
 
     // TODO: all other functions needs to check that pool is initialized

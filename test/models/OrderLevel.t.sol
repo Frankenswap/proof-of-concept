@@ -2,15 +2,15 @@
 pragma solidity =0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {SqrtPriceLevel, SqrtPriceLevelLibrary} from "../../src/models/SqrtPriceLevel.sol";
+import {OrderLevel, OrderLevelLibrary} from "../../src/models/OrderLevel.sol";
 import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
 import {Order} from "../../src/models/Order.sol";
 import {OrderId} from "../../src/models/OrderId.sol";
 
-contract SqrtPriceLevelTest is Test {
-    using SqrtPriceLevelLibrary for mapping(SqrtPrice => SqrtPriceLevel);
+contract OrderLevelTest is Test {
+    using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
 
-    mapping(SqrtPrice => SqrtPriceLevel) public ticks;
+    mapping(SqrtPrice => OrderLevel) public ticks;
     mapping(OrderId => Order) public orders;
 
     function setUp() public {
@@ -21,7 +21,7 @@ contract SqrtPriceLevelTest is Test {
         internal
         returns (OrderId orderId)
     {
-        SqrtPriceLevelLibrary.PlaceOrderParams memory params = SqrtPriceLevelLibrary.PlaceOrderParams({
+        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
             amount: 100,
@@ -72,13 +72,13 @@ contract SqrtPriceLevelTest is Test {
 
     function test_initialize_AlreadyInitialized() public {
         ticks[SqrtPrice.wrap(0)].next = SqrtPrice.wrap(100);
-        vm.expectRevert(SqrtPriceLevelLibrary.SqrtPriceLevelAlreadyInitialized.selector);
+        vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
         ticks.initialize();
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), 100);
 
         ticks[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(100);
         ticks.initialize();
-        vm.expectRevert(SqrtPriceLevelLibrary.SqrtPriceLevelAlreadyInitialized.selector);
+        vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(type(uint160).max)].next), 100);
     }
 
