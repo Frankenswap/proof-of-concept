@@ -7,6 +7,8 @@ import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
 import {Order} from "../../src/models/Order.sol";
 import {OrderId} from "../../src/models/OrderId.sol";
 
+import {console} from "forge-std/console.sol";
+
 contract SqrtPriceLevelTest is Test {
     using SqrtPriceLevelLibrary for mapping(SqrtPrice => SqrtPriceLevel);
 
@@ -17,14 +19,14 @@ contract SqrtPriceLevelTest is Test {
         ticks.initialize();
     }
 
-    function placeMockOrder(SqrtPrice targetTick, SqrtPrice[] memory neighborTicks)
+    function placeMockOrder(SqrtPrice targetTick, uint128 amount, SqrtPrice[] memory neighborTicks)
         internal
         returns (OrderId orderId)
     {
         SqrtPriceLevelLibrary.PlaceOrderParams memory params = SqrtPriceLevelLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
-            amount: 100,
+            amount: amount,
             targetTick: targetTick,
             currentTick: SqrtPrice.wrap(0),
             neighborTicks: neighborTicks
@@ -54,13 +56,25 @@ contract SqrtPriceLevelTest is Test {
         }
     }
 
-    function verfiyLink(uint256 tickNumber) internal view {
+    function verfiyLink(uint256 tickNumber, uint256 targetOrderCount, uint256 totalOrderAmount) internal view {
         SqrtPrice nextTick = SqrtPrice.wrap(0);
+        uint256 orderCount = ticks[nextTick].lastOpenOrder - ticks[nextTick].lastCloseOrder;
+        uint256 orderAmount = ticks[nextTick].totalOpenAmount;
+
         for (uint256 i = 0; i < tickNumber; i++) {
             nextTick = ticks[nextTick].next;
+
+            orderCount += ticks[nextTick].lastOpenOrder - ticks[nextTick].lastCloseOrder;
+            orderAmount += ticks[nextTick].totalOpenAmount;
+
+            if (nextTick == SqrtPrice.wrap(type(uint160).max)) {
+                break;
+            }
         }
 
         assertEq(SqrtPrice.unwrap(nextTick), type(uint160).max);
+        assertEq(targetOrderCount, orderCount);
+        assertEq(totalOrderAmount, orderAmount);
 
         SqrtPrice prevTick = SqrtPrice.wrap(type(uint160).max);
         for (uint256 i = 0; i < tickNumber; i++) {
@@ -85,7 +99,7 @@ contract SqrtPriceLevelTest is Test {
     function test_palceOrder_next() public {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
         SqrtPrice targetTick = SqrtPrice.wrap(100);
-        OrderId orderId = placeMockOrder(targetTick, neighborTicks);
+        OrderId orderId = placeMockOrder(targetTick, 100, neighborTicks);
 
         verifyTickLink(SqrtPrice.wrap(0), targetTick, SqrtPrice.wrap(type(uint160).max));
         assertEq(orderId.index(), 1);
@@ -96,7 +110,7 @@ contract SqrtPriceLevelTest is Test {
 
         verifyMockOrder(orderId, targetTick);
 
-        orderId = placeMockOrder(targetTick, neighborTicks);
+        orderId = placeMockOrder(targetTick, 100, neighborTicks);
         assertEq(ticks[targetTick].totalOpenAmount, 200);
         assertEq(ticks[targetTick].lastOpenOrder, 2);
         assertEq(ticks[targetTick].orders[orderId].amount, 100);
@@ -106,9 +120,9 @@ contract SqrtPriceLevelTest is Test {
     function test_placeOrder_prev() public {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
-        OrderId orderId = placeMockOrder(SqrtPrice.wrap(1000), neighborTicks);
-        placeMockOrder(SqrtPrice.wrap(500), neighborTicks);
-        placeMockOrder(SqrtPrice.wrap(100), neighborTicks);
+        OrderId orderId = placeMockOrder(SqrtPrice.wrap(1000), 100, neighborTicks);
+        placeMockOrder(SqrtPrice.wrap(500), 100, neighborTicks);
+        placeMockOrder(SqrtPrice.wrap(100), 100, neighborTicks);
 
         verifyMockOrder(orderId, SqrtPrice.wrap(1000));
 
@@ -117,13 +131,22 @@ contract SqrtPriceLevelTest is Test {
         verifyTickLink(SqrtPrice.wrap(500), SqrtPrice.wrap(1000), SqrtPrice.wrap(type(uint160).max));
     }
 
-    function test_fuzz_placeOrder(SqrtPrice tick1, SqrtPrice tick2, SqrtPrice tick3) public {
+    struct PlaceMockOrderParams {
+        SqrtPrice targetTick;
+        uint32 amount;
+    }
+
+    function test_fuzz_placeOrder(
+        PlaceMockOrderParams calldata tick1,
+        PlaceMockOrderParams calldata tick2,
+        PlaceMockOrderParams calldata tick3
+    ) public {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
-        placeMockOrder(tick1, neighborTicks);
-        placeMockOrder(tick2, neighborTicks);
-        placeMockOrder(tick3, neighborTicks);
+        placeMockOrder(tick1.targetTick, tick1.amount, neighborTicks);
+        placeMockOrder(tick2.targetTick, tick2.amount, neighborTicks);
+        placeMockOrder(tick3.targetTick, tick3.amount, neighborTicks);
 
-        verfiyLink(4);
+        verfiyLink(4, 3, uint256(tick1.amount) + tick2.amount + tick3.amount);
     }
 }
