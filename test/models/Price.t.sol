@@ -67,6 +67,24 @@ function fullMulDiv(uint256 x, uint256 y, uint256 d) pure returns (uint256 z) {
     }
 }
 
+/// @dev Calculates `floor(x * y / d)` with full precision, rounded up.
+/// Throws if result overflows a uint256 or when `d` is zero.
+/// Credit to Uniswap-v3-core under MIT license:
+/// https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/FullMath.sol
+function fullMulDivUp(uint256 x, uint256 y, uint256 d) pure returns (uint256 z) {
+    z = fullMulDiv(x, y, d);
+    /// @solidity memory-safe-assembly
+    assembly {
+        if mulmod(x, y, d) {
+            z := add(z, 1)
+            if iszero(z) {
+                mstore(0x00, 0xae47f702) // `FullMulDivFailed()`.
+                revert(0x1c, 0x04)
+            }
+        }
+    }
+}
+
 contract PriceTest is Test {
     function test_fromSqrtPrice() public pure {
         Price price = PriceLibrary.fromSqrtPrice(SqrtPrice.wrap(1 << 96));
@@ -76,17 +94,74 @@ contract PriceTest is Test {
         assertEq(Price.unwrap(price), 1 << (159 * 2 - 96));
     }
 
-    function fullMulNDiv (uint256 x, uint8 n, uint256 d) internal pure returns (uint256 z) {
-        z = PriceLibrary.fullMulNDiv(x, n, d);
+    function fullMulDivN(uint256 x, uint256 y, uint8 n) internal pure returns (uint256 z) {
+        z = PriceLibrary.fullMulDivN(x, y, n);
     }
 
-    function test_fuzz_fullMulNDiv(uint256 x, uint256 d) public view {
+    function test_fuzz_fullMulDivN(uint256 x, uint256 y, uint8 n) public view {
         (bool success0, bytes memory result0) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulDiv(uint256,uint256,uint256)", x, 1 << 96, d)
+            abi.encodeWithSignature("fullMulDivN(uint256,uint256,uint8)", x, y, n)
         );
 
         (bool success1, bytes memory result1) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulNDiv(uint256,uint8,uint256)", x, 96, d)
+            abi.encodeWithSignature("fullMulDiv(uint256,uint256,uint256)", x, y, 1 << n)
+        );
+
+        assertEq(success0, success1);
+        if (success0) {
+            assertEq(abi.decode(result0, (uint256)), abi.decode(result1, (uint256)));
+        }
+    }
+
+    function fullMulDivNUp(uint256 x, uint256 y, uint8 n) internal pure returns (uint256 z) {
+        z = PriceLibrary.fullMulDivNUp(x, y, n);
+    }
+
+    function test_fuzz_fullMulDivNUp(uint256 x, uint256 y, uint8 n) public view {
+        (bool success0, bytes memory result0) = address(this).staticcall(
+            abi.encodeWithSignature("fullMulDivNUp(uint256,uint256,uint8)", x, y, n)
+        );
+
+        (bool success1, bytes memory result1) = address(this).staticcall(
+            abi.encodeWithSignature("fullMulDivUp(uint256,uint256,uint256)", x, y, 1 << n)
+        );
+
+        assertEq(success0, success1);
+        if (success0) {
+            assertEq(abi.decode(result0, (uint256)), abi.decode(result1, (uint256)));
+        }
+    }
+
+    function fullMulNDiv(uint256 x, uint8 n, uint256 d) internal pure returns (uint256 z) {
+        z = PriceLibrary.fullMulNDiv(x, n, d);
+    }
+
+    function test_fuzz_fullMulNDiv(uint256 x, uint8 n, uint256 d) public view {
+        (bool success0, bytes memory result0) = address(this).staticcall(
+            abi.encodeWithSignature("fullMulDiv(uint256,uint256,uint256)", x, 1 << n, d)
+        );
+
+        (bool success1, bytes memory result1) = address(this).staticcall(
+            abi.encodeWithSignature("fullMulNDiv(uint256,uint8,uint256)", x, n, d)
+        );
+
+        assertEq(success0, success1);
+        if (success0) {
+            assertEq(abi.decode(result0, (uint256)), abi.decode(result1, (uint256)));
+        }
+    }
+
+    function fullMulNDivUp(uint256 x, uint8 n, uint256 d) internal pure returns (uint256 z) {
+        z = PriceLibrary.fullMulNDivUp(x, n, d);
+    }
+
+    function test_fuzz_fullMulNDivUp(uint256 x, uint8 n, uint256 d) public view {
+        (bool success0, bytes memory result0) = address(this).staticcall(
+            abi.encodeWithSignature("fullMulDivUp(uint256,uint256,uint256)", x, 1 << n, d)
+        );
+
+        (bool success1, bytes memory result1) = address(this).staticcall(
+            abi.encodeWithSignature("fullMulNDivUp(uint256,uint8,uint256)", x, n, d)
         );
 
         assertEq(success0, success1);
@@ -118,4 +193,25 @@ contract PriceTest is Test {
         // max error: 18.446744073709551612 ether
         assertApproxEqAbsDecimal(amount0, priceRaw * amount1, 20 ether, 18);
     }
+
+    function test_fullMulNDiv_edge() public pure {
+        uint256 d = 2880167108480334364 << 96;
+        uint256 result1 = fullMulNDiv(9006692144905288893597737698337016458386369675408024, 96, d);
+        uint256 result2 = fullMulDiv(9006692144905288893597737698337016458386369675408024, 2 ** 96, d);
+        assertEq(result1, result2);
+        assertEq(result2, 3127142212820248285282886819185066);
+    }
+
+    // function test_fuzz_getAmount0WithAmount1(uint128 amount1, uint64 priceRaw) public {
+    //     vm.assume(amount1 != 0);
+    //     vm.assume(priceRaw != 0);
+
+    //     Price price = Price.wrap(uint160(priceRaw) << 96);
+    //     uint256 amount0 = price.getAmount0Delta(amount1);
+    //     emit log_uint(amount0);
+    //     uint256 amoun1Other = price.getAmount1Delta(amount0);
+
+    //     // assertApproxEqAbsDecimal(amount0, priceRaw * amount1, 20 ether, 18);
+    //     assertApproxEqAbs(uint256(amount1), amoun1Other, 1);
+    // }
 }

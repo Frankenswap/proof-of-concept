@@ -43,6 +43,26 @@ library PriceLibrary {
         }
     }
 
+    /// @dev Calculates `floor(x * y / d)` with full precision, rounded up.
+    /// Throws if result overflows a uint256 or when `d` is zero.
+    /// Credit to Uniswap-v3-core under MIT license:
+    /// https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/FullMath.sol
+    function fullMulDivNUp(uint256 x, uint256 y, uint8 n) internal pure returns (uint256 z) {
+        z = fullMulDivN(x, y, n);
+        /// @solidity memory-safe-assembly
+        assembly {
+            let k := and(n, 0xff)
+
+            if mulmod(x, y, shl(1, k)) {
+                z := add(z, 1)
+                if iszero(z) {
+                    mstore(0x00, 0xae47f702) // `FullMulDivFailed()`.
+                    revert(0x1c, 0x04)
+                }
+            }
+        }
+    }
+    
     /// @dev Calculates `floor(x * 2 ** n / d)` with full precision.
     /// Throws if result overflows a uint256 or when `d` is zero.
     /// Credit to Remco Bloemen under MIT license: https://2π.com/21/muldiv
@@ -66,7 +86,7 @@ library PriceLibrary {
                     /*------------------- 512 by 256 division --------------------*/
 
                     // Make division exact by subtracting the remainder from `[p1 p0]`.
-                    let r := mulmod(x, shl(1, k), d) // Compute remainder using mulmod.
+                    let r := mulmod(x, shl(k, 1), d) // Compute remainder using mulmod.
                     let t := and(d, sub(0, d)) // The least significant bit of `d`. `t >= 1`.
                     // Make sure `z` is less than `2**256`. Also prevents `d == 0`.
                     // Placing the check here seems to give more optimal stack operations.
@@ -105,6 +125,23 @@ library PriceLibrary {
         }
     }
 
+    function fullMulNDivUp(uint256 x, uint8 n, uint256 d) internal pure returns (uint256 z) {
+        z = fullMulNDiv(x, n, d);
+
+        /// @solidity memory-safe-assembly
+        assembly {
+            let k := and(n, 0xff)
+
+            if mulmod(x, shl(1, k), d) {
+                z := add(z, 1)
+                if iszero(z) {
+                    mstore(0x00, 0xae47f702) // `FullMulDivFailed()`.
+                    revert(0x1c, 0x04)
+                }
+            }
+        }
+    }
+
     /// @dev Price = sqrtPrice * sqrtPrice >> 96 (Q96.96)
     function fromSqrtPrice(SqrtPrice sqrtPrice) internal pure returns (Price price) {
         price = Price.wrap(fullMulDivN(SqrtPrice.unwrap(sqrtPrice), SqrtPrice.unwrap(sqrtPrice), 96));
@@ -113,6 +150,11 @@ library PriceLibrary {
     function getAmount0Delta(Price price, uint256 amount1) internal pure returns (uint256 amount0) {
         amount0 = fullMulDivN(Price.unwrap(price), amount1, 96);
     }
+
+    // function getAmount0DeltaUp(Price price, uint256 amount1) internal pure returns (uint256 amount0) {
+    //     amount0 = fullMulDivNUp(Price.unwrap(price), amount1, 96);
+        
+    // }
 
     function getAmount1Delta(Price price, uint256 amount0) internal pure returns (uint256 amount1) {
         // If amount0 is too small, it will have more error
