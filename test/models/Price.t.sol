@@ -165,7 +165,7 @@ contract PriceTest is Test {
     function test_fuzz_getAmount0Delta(uint128 amount1, uint64 priceRaw) public pure {
         vm.assume(amount1 != 0);
         vm.assume(priceRaw != 0);
-        vm.assume(uint256(amount1) * uint256(priceRaw) < (1 << 127));
+        vm.assume(uint256(amount1) * uint256(priceRaw) < type(uint128).max >> 1);
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
         uint256 amount0 = uint256(int256(price.getAmount0Delta(amount1)));
@@ -177,7 +177,7 @@ contract PriceTest is Test {
         vm.assume(amount0 > 1 ether);
         vm.assume(priceRaw != 0);
         vm.assume(uint256(amount0) / priceRaw > 0);
-        vm.assume(uint256(amount0) / priceRaw < (1 << 127));
+        vm.assume(uint256(amount0) / priceRaw < type(uint128).max >> 1);
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
         uint256 amount1 = uint256(int256(price.getAmount1Delta(amount0)));
@@ -199,7 +199,7 @@ contract PriceTest is Test {
     function test_fuzz_getAmount0WithAmount1(uint128 amount1, uint64 priceRaw) public {
         vm.assume(amount1 != 0);
         vm.assume(priceRaw != 0);
-        vm.assume(uint256(amount1) * uint256(priceRaw) < (1 << 127));
+        vm.assume(uint256(amount1) * uint256(priceRaw) < type(uint128).max >> 1);
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
         uint128 amount0 = uint128(price.getAmount0Delta(amount1));
