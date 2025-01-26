@@ -202,16 +202,15 @@ contract PriceTest is Test {
         assertEq(result2, 3127142212820248285282886819185066);
     }
 
-    // function test_fuzz_getAmount0WithAmount1(uint128 amount1, uint64 priceRaw) public {
-    //     vm.assume(amount1 != 0);
-    //     vm.assume(priceRaw != 0);
+    function test_fuzz_getAmount0WithAmount1(uint128 amount1, uint64 priceRaw) public {
+        vm.assume(amount1 != 0);
+        vm.assume(priceRaw != 0);
 
-    //     Price price = Price.wrap(uint160(priceRaw) << 96);
-    //     uint256 amount0 = price.getAmount0Delta(amount1);
-    //     emit log_uint(amount0);
-    //     uint256 amoun1Other = price.getAmount1Delta(amount0);
+        Price price = Price.wrap(uint160(priceRaw) << 96);
+        uint256 amount0 = price.getAmount0Delta(amount1);
+        emit log_uint(amount0);
+        uint256 amoun1Other = price.getAmount1Delta(amount0);
 
-    //     // assertApproxEqAbsDecimal(amount0, priceRaw * amount1, 20 ether, 18);
-    //     assertApproxEqAbs(uint256(amount1), amoun1Other, 1);
-    // }
+        assertApproxEqAbs(uint256(amount1), amoun1Other, 1);
+    }
 }
