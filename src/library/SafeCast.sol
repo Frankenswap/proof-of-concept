@@ -10,4 +10,9 @@ library SafeCast {
         y = int128(x);
         if (y < 0) revert SafeCastOverflow();
     }
+
+    function uint256toInt128(uint256 x) internal pure returns (int128) {
+        if (x >= 1 << 127) revert SafeCastOverflow();
+        return int128(int256(x));
+    }
 }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {SqrtPrice} from "./SqrtPrice.sol";
+import {SafeCast} from "../library/SafeCast.sol";
 
 /// @dev Represented as Q96.96 fixed point number
 type Price is uint256;
@@ -9,8 +10,7 @@ type Price is uint256;
 using PriceLibrary for Price global;
 
 library PriceLibrary {
-    uint256 internal constant WAD = 1e18;
-    uint256 internal constant USDT_DECIMALS = 1e6;
+    using SafeCast for uint256;
 
     /// @dev Calculates `floor(x * y / 2 ** n)` with full precision.
     /// Throws if result overflows a uint256.
@@ -62,7 +62,7 @@ library PriceLibrary {
             }
         }
     }
-    
+
     /// @dev Calculates `floor(x * 2 ** n / d)` with full precision.
     /// Throws if result overflows a uint256 or when `d` is zero.
     /// Credit to Remco Bloemen under MIT license: https://2π.com/21/muldiv
@@ -147,21 +147,21 @@ library PriceLibrary {
         price = Price.wrap(fullMulDivN(SqrtPrice.unwrap(sqrtPrice), SqrtPrice.unwrap(sqrtPrice), 96));
     }
 
-    function getAmount0Delta(Price price, uint256 amount1) internal pure returns (uint256 amount0) {
-        amount0 = fullMulDivN(Price.unwrap(price), amount1, 96);
+    function getAmount0Delta(Price price, uint128 amount1) internal pure returns (int128 amount0) {
+        amount0 = fullMulDivN(Price.unwrap(price), amount1, 96).uint256toInt128();
     }
 
-    function getAmount0DeltaUp(Price price, uint256 amount1) internal pure returns (uint256 amount0) {
-        amount0 = fullMulDivNUp(Price.unwrap(price), amount1, 96);        
+    function getAmount0DeltaUp(Price price, uint128 amount1) internal pure returns (int128 amount0) {
+        amount0 = fullMulDivNUp(Price.unwrap(price), amount1, 96).uint256toInt128();
     }
 
-    function getAmount1Delta(Price price, uint256 amount0) internal pure returns (uint256 amount1) {
+    function getAmount1Delta(Price price, uint128 amount0) internal pure returns (int128 amount1) {
         // If amount0 is too small, it will have more error
         // If price is too big, it will have more error
-        amount1 = fullMulNDiv(amount0, 96, Price.unwrap(price));
+        amount1 = fullMulNDiv(amount0, 96, Price.unwrap(price)).uint256toInt128();
     }
 
-    function getAmount1DeltaUp(Price price, uint256 amount0) internal pure returns (uint256 amount1) {
-        amount1 = fullMulNDivUp(amount0, 96, Price.unwrap(price));
+    function getAmount1DeltaUp(Price price, uint128 amount0) internal pure returns (int128 amount1) {
+        amount1 = fullMulNDivUp(amount0, 96, Price.unwrap(price)).uint256toInt128();
     }
 }

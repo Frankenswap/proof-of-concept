@@ -99,13 +99,11 @@ contract PriceTest is Test {
     }
 
     function test_fuzz_fullMulDivN(uint256 x, uint256 y, uint8 n) public view {
-        (bool success0, bytes memory result0) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulDivN(uint256,uint256,uint8)", x, y, n)
-        );
+        (bool success0, bytes memory result0) =
+            address(this).staticcall(abi.encodeWithSignature("fullMulDivN(uint256,uint256,uint8)", x, y, n));
 
-        (bool success1, bytes memory result1) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulDiv(uint256,uint256,uint256)", x, y, 1 << n)
-        );
+        (bool success1, bytes memory result1) =
+            address(this).staticcall(abi.encodeWithSignature("fullMulDiv(uint256,uint256,uint256)", x, y, 1 << n));
 
         assertEq(success0, success1);
         if (success0) {
@@ -118,13 +116,11 @@ contract PriceTest is Test {
     }
 
     function test_fuzz_fullMulDivNUp(uint256 x, uint256 y, uint8 n) public view {
-        (bool success0, bytes memory result0) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulDivNUp(uint256,uint256,uint8)", x, y, n)
-        );
+        (bool success0, bytes memory result0) =
+            address(this).staticcall(abi.encodeWithSignature("fullMulDivNUp(uint256,uint256,uint8)", x, y, n));
 
-        (bool success1, bytes memory result1) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulDivUp(uint256,uint256,uint256)", x, y, 1 << n)
-        );
+        (bool success1, bytes memory result1) =
+            address(this).staticcall(abi.encodeWithSignature("fullMulDivUp(uint256,uint256,uint256)", x, y, 1 << n));
 
         assertEq(success0, success1);
         if (success0) {
@@ -137,13 +133,11 @@ contract PriceTest is Test {
     }
 
     function test_fuzz_fullMulNDiv(uint256 x, uint8 n, uint256 d) public view {
-        (bool success0, bytes memory result0) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulDiv(uint256,uint256,uint256)", x, 1 << n, d)
-        );
+        (bool success0, bytes memory result0) =
+            address(this).staticcall(abi.encodeWithSignature("fullMulDiv(uint256,uint256,uint256)", x, 1 << n, d));
 
-        (bool success1, bytes memory result1) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulNDiv(uint256,uint8,uint256)", x, n, d)
-        );
+        (bool success1, bytes memory result1) =
+            address(this).staticcall(abi.encodeWithSignature("fullMulNDiv(uint256,uint8,uint256)", x, n, d));
 
         assertEq(success0, success1);
         if (success0) {
@@ -156,13 +150,11 @@ contract PriceTest is Test {
     }
 
     function test_fuzz_fullMulNDivUp(uint256 x, uint8 n, uint256 d) public view {
-        (bool success0, bytes memory result0) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulDivUp(uint256,uint256,uint256)", x, 1 << n, d)
-        );
+        (bool success0, bytes memory result0) =
+            address(this).staticcall(abi.encodeWithSignature("fullMulDivUp(uint256,uint256,uint256)", x, 1 << n, d));
 
-        (bool success1, bytes memory result1) = address(this).staticcall(
-            abi.encodeWithSignature("fullMulNDivUp(uint256,uint8,uint256)", x, n, d)
-        );
+        (bool success1, bytes memory result1) =
+            address(this).staticcall(abi.encodeWithSignature("fullMulNDivUp(uint256,uint8,uint256)", x, n, d));
 
         assertEq(success0, success1);
         if (success0) {
@@ -173,9 +165,10 @@ contract PriceTest is Test {
     function test_fuzz_getAmount0Delta(uint128 amount1, uint64 priceRaw) public pure {
         vm.assume(amount1 != 0);
         vm.assume(priceRaw != 0);
+        vm.assume(uint256(amount1) * uint256(priceRaw) < (1 << 127));
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
-        uint256 amount0 = price.getAmount0Delta(amount1);
+        uint256 amount0 = uint256(int256(price.getAmount0Delta(amount1)));
 
         assertEq(amount0 / amount1, priceRaw);
     }
@@ -183,10 +176,11 @@ contract PriceTest is Test {
     function test_fuzz_getAmount1Delta(uint128 amount0, uint64 priceRaw) public {
         vm.assume(amount0 > 1 ether);
         vm.assume(priceRaw != 0);
-        vm.assume(uint256(amount0) / priceRaw != 0);
+        vm.assume(uint256(amount0) / priceRaw > 0);
+        vm.assume(uint256(amount0) / priceRaw < (1 << 127));
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
-        uint256 amount1 = price.getAmount1Delta(amount0);
+        uint256 amount1 = uint256(int256(price.getAmount1Delta(amount0)));
 
         emit log_uint(amount1);
         // If amount0 = 340282366920938463463374607431768211452, priceRaw = 18446744073709551615
@@ -205,12 +199,13 @@ contract PriceTest is Test {
     function test_fuzz_getAmount0WithAmount1(uint128 amount1, uint64 priceRaw) public {
         vm.assume(amount1 != 0);
         vm.assume(priceRaw != 0);
+        vm.assume(uint256(amount1) * uint256(priceRaw) < (1 << 127));
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
-        uint256 amount0 = price.getAmount0Delta(amount1);
+        uint128 amount0 = uint128(price.getAmount0Delta(amount1));
         emit log_uint(amount0);
-        uint256 amoun1Other = price.getAmount1Delta(amount0);
+        uint128 amoun1Other = uint128(price.getAmount1Delta(amount0));
 
-        assertApproxEqAbs(uint256(amount1), amoun1Other, 1);
+        assertApproxEqAbs(uint256(amount1), uint256(amoun1Other), 1);
     }
 }
