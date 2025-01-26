@@ -115,6 +115,8 @@ library PriceLibrary {
     }
 
     function getAmount1Delta(Price price, uint256 amount0) internal pure returns (uint256 amount1) {
-        amount1 = fullMulNDiv(Price.unwrap(price), 96, amount0);
+        // If amount0 is too small, it will have more error
+        // If price is too big, it will have more error
+        amount1 = fullMulNDiv(amount0, 96, Price.unwrap(price));
     }
 }

@@ -94,4 +94,28 @@ contract PriceTest is Test {
             assertEq(abi.decode(result0, (uint256)), abi.decode(result1, (uint256)));
         }
     }
+
+    function test_fuzz_getAmount0Delta(uint128 amount1, uint64 priceRaw) public pure {
+        vm.assume(amount1 != 0);
+        vm.assume(priceRaw != 0);
+
+        Price price = Price.wrap(uint160(priceRaw) << 96);
+        uint256 amount0 = price.getAmount0Delta(amount1);
+
+        assertEq(amount0 / amount1, priceRaw);
+    }
+
+    function test_fuzz_getAmount1Delta(uint128 amount0, uint64 priceRaw) public {
+        vm.assume(amount0 > 1 ether);
+        vm.assume(priceRaw != 0);
+        vm.assume(uint256(amount0) / priceRaw != 0);
+
+        Price price = Price.wrap(uint160(priceRaw) << 96);
+        uint256 amount1 = price.getAmount1Delta(amount0);
+
+        emit log_uint(amount1);
+        // If amount0 = 340282366920938463463374607431768211452, priceRaw = 18446744073709551615
+        // max error: 18.446744073709551612 ether
+        assertApproxEqAbsDecimal(amount0, priceRaw * amount1, 20 ether, 18);
+    }
 }
