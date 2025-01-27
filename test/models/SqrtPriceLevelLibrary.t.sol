@@ -6,8 +6,7 @@ import {SqrtPriceLevel, SqrtPriceLevelLibrary} from "../../src/models/SqrtPriceL
 import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
 import {Order} from "../../src/models/Order.sol";
 import {OrderId} from "../../src/models/OrderId.sol";
-
-import {console} from "forge-std/console.sol";
+import {BalanceDelta, toBalanceDelta} from "../../src/models/BalanceDelta.sol";
 
 contract SqrtPriceLevelTest is Test {
     using SqrtPriceLevelLibrary for mapping(SqrtPrice => SqrtPriceLevel);
@@ -129,6 +128,83 @@ contract SqrtPriceLevelTest is Test {
         verifyTickLink(SqrtPrice.wrap(0), SqrtPrice.wrap(100), SqrtPrice.wrap(500));
         verifyTickLink(SqrtPrice.wrap(100), SqrtPrice.wrap(500), SqrtPrice.wrap(1000));
         verifyTickLink(SqrtPrice.wrap(500), SqrtPrice.wrap(1000), SqrtPrice.wrap(type(uint160).max));
+    }
+
+    function test_removeOrder_underClose() public {
+        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+
+        // Remove zeroForOne = true
+        SqrtPriceLevelLibrary.PlaceOrderParams memory params = SqrtPriceLevelLibrary.PlaceOrderParams({
+            maker: address(this),
+            zeroForOne: true,
+            amount: 10 ether,
+            targetTick: SqrtPrice.wrap(100),
+            currentTick: SqrtPrice.wrap(0),
+            neighborTicks: neighborTicks
+        });
+
+        OrderId orderId = ticks.placeOrder(params);
+        ticks[SqrtPrice.wrap(100)].lastCloseOrder = 1;
+
+        BalanceDelta delta = ticks.removeOrder(orderId);
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(0, 10 ether)));
+
+        // Remove zeroForOne = fasle
+        params.zeroForOne = false;
+        orderId = ticks.placeOrder(params);
+        ticks[SqrtPrice.wrap(100)].lastCloseOrder = 2;
+        delta = ticks.removeOrder(orderId);
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(10 ether, 0)));
+
+        // Remove already closed order will be not affect
+        delta = ticks.removeOrder(orderId);
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(0, 0)));
+    }
+
+    function test_removeOrder_removeLink() public {
+        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+        OrderId orderId = placeMockOrder(SqrtPrice.wrap(2 << 96), 100, neighborTicks);
+        assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), 2 << 96);
+
+        BalanceDelta delta = ticks.removeOrder(orderId);
+
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(400, 0)));
+        assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), type(uint160).max);
+        assertEq(ticks[SqrtPrice.wrap(100)].totalOpenAmount, 0);
+    }
+
+    function test_removeOrder_totalOpenAmount() public {
+        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+        SqrtPrice targetTick = SqrtPrice.wrap(2 << 96);
+        // Remove zeroForOne = true
+        SqrtPriceLevelLibrary.PlaceOrderParams memory params = SqrtPriceLevelLibrary.PlaceOrderParams({
+            maker: address(this),
+            zeroForOne: true,
+            amount: 10 ether,
+            targetTick: targetTick,
+            currentTick: SqrtPrice.wrap(0),
+            neighborTicks: neighborTicks
+        });
+
+        OrderId orderId = ticks.placeOrder(params);
+
+        // Change order fill amount
+        ticks[targetTick].orders[orderId].amountFilled = 2 ether;
+
+        BalanceDelta delta = ticks.removeOrder(orderId);
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(32 ether, 2 ether)));
+        assertEq(ticks[targetTick].totalOpenAmount, 2 ether);
+
+        // Remove zeroForOne = false
+        params.zeroForOne = false;
+        orderId = ticks.placeOrder(params);
+
+        // Change order fill amount
+        ticks[targetTick].orders[orderId].amountFilled = 2 ether;
+
+        delta = ticks.removeOrder(orderId);
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(2 ether, 2 ether)));
+        assertEq(ticks[targetTick].totalOpenAmount, 4 ether);
     }
 
     struct PlaceMockOrderParams {

@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {Order} from "./Order.sol";
 import {OrderId, OrderIdLibrary} from "./OrderId.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
+import {Price, PriceLibrary} from "./Price.sol";
 import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
 import {SafeCast} from "../library/SafeCast.sol";
 
@@ -141,7 +142,7 @@ library SqrtPriceLevelLibrary {
 
         Order memory order = self[sqrtPrice].orders[orderId];
 
-        if (orderIdIndex < lastCloseOrder) {
+        if (orderIdIndex <= lastCloseOrder) {
             delta = order.zeroForOne
                 ? toBalanceDelta(0, order.amount.toInt128())
                 : toBalanceDelta(order.amount.toInt128(), 0);
@@ -150,6 +151,7 @@ library SqrtPriceLevelLibrary {
             // totalOpenAmount should update
             // If updated totalOpenAmount == 0, should remove the sqrtPrice level in linked list
 
+            Price price = PriceLibrary.fromSqrtPrice(sqrtPrice);
             uint128 orderRemaining = order.amount - order.amountFilled;
             uint128 cacheTotalOpenAmount = self[sqrtPrice].totalOpenAmount - orderRemaining;
 
@@ -163,11 +165,9 @@ library SqrtPriceLevelLibrary {
 
             self[sqrtPrice].totalOpenAmount = cacheTotalOpenAmount;
 
-            int128 amountDelta = orderRemaining.toInt128();
-
             delta = order.zeroForOne
-                ? toBalanceDelta(amountDelta, order.amountFilled.toInt128())
-                : toBalanceDelta(order.amountFilled.toInt128(), amountDelta);
+                ? toBalanceDelta(price.getAmount0Delta(orderRemaining), order.amountFilled.toInt128())
+                : toBalanceDelta(order.amountFilled.toInt128(), price.getAmount1Delta(orderRemaining));
         }
 
         delete self[OrderIdLibrary.sqrtPrice(orderId)].orders[orderId];
