@@ -2,10 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {IConfigs} from "../interfaces/IConfigs.sol";
+import {IShareToken} from "../interfaces/IShareToken.sol";
 import {BalanceDelta} from "../models/BalanceDelta.sol";
 import {OrderId} from "../models/OrderId.sol";
 import {PoolId} from "../models/PoolId.sol";
 import {PoolKey} from "../models/PoolKey.sol";
+import {Position} from "../models/Position.sol";
 import {SqrtPrice} from "../models/SqrtPrice.sol";
 import {Token} from "../models/Token.sol";
 
@@ -17,29 +19,30 @@ interface IPoolManager {
     /// @param token1 The second token
     /// @param configs The pool configs
     /// @param sqrtPrice The initial square root price
-    /// @param liquidityToken The liquidity token
+    /// @param shareToken The share token
     event Initialize(
         PoolId indexed poolId,
         Token indexed token0,
         Token indexed token1,
         IConfigs configs,
+        IShareToken shareToken,
         SqrtPrice sqrtPrice,
-        address liquidityToken
+        Position position
     );
 
-    /// @notice Emitted when liquidity is minted
+    /// @notice Emitted when share is minted
     /// @param poolId The pool id
     /// @param sender The sender
     /// @param balanceDelta The balance delta for the sender
-    /// @param liquidityDelta The liquidity delta for the sender
-    event Mint(PoolId indexed poolId, address indexed sender, BalanceDelta balanceDelta, int128 liquidityDelta);
+    /// @param shareDelta The share delta for the sender
+    event Mint(PoolId indexed poolId, address indexed sender, BalanceDelta balanceDelta, int128 shareDelta);
 
-    /// @notice Emitted when liquidity is burned
+    /// @notice Emitted when share is burned
     /// @param poolId The pool id
     /// @param sender The sender
     /// @param balanceDelta The balance delta for the sender
-    /// @param liquidityDelta The liquidity delta for the sender
-    event Burn(PoolId indexed poolId, address indexed sender, BalanceDelta balanceDelta, int128 liquidityDelta);
+    /// @param shareDelta The share delta for the sender
+    event Burn(PoolId indexed poolId, address indexed sender, BalanceDelta balanceDelta, int128 shareDelta);
 
     // TODO: PlaceOrder event
 
@@ -56,29 +59,29 @@ interface IPoolManager {
     /// @param poolKey The pool key
     /// @param sqrtPrice The initial square root price
     /// @return poolId The pool id
-    /// @return liquidityToken The liquidity token
+    /// @return shareToken The share token
     function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice)
         external
-        returns (PoolId poolId, address liquidityToken);
+        returns (PoolId poolId, IShareToken shareToken);
 
-    /// @notice Mints liquidity
+    /// @notice Mints share
     /// @param poolKey The pool key
     /// @param amount0 The desired amount of token0 to provide
     /// @param amount1 The desired amount of token1 to provide
     /// @return balanceDelta The balance delta required
-    /// @return liquidityDelta The liquidity delta received
+    /// @return shareDelta The share delta received
     function mint(PoolKey calldata poolKey, uint128 amount0, uint128 amount1)
         external
-        returns (BalanceDelta balanceDelta, int128 liquidityDelta);
+        returns (BalanceDelta balanceDelta, int128 shareDelta);
 
-    /// @notice Burns liquidity
+    /// @notice Burns share
     /// @param poolKey The pool key
-    /// @param liquidity The amount of liquidity to burn
+    /// @param share The amount of share to burn
     /// @return balanceDelta The balance delta received
-    /// @return liquidityDelta The liquidity delta required
-    function burn(PoolKey calldata poolKey, uint128 liquidity)
+    /// @return shareDelta The share delta required
+    function burn(PoolKey calldata poolKey, uint128 share)
         external
-        returns (BalanceDelta balanceDelta, int128 liquidityDelta);
+        returns (BalanceDelta balanceDelta, int128 shareDelta);
 
     // TODO: add price limit, to decide whether use uint32 or SqrtPrice
     // TODO: add neighbor ticks/SqrtPrices that are already in the linked map, to decide whether use uint32 or SqrtPrice
