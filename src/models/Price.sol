@@ -34,7 +34,7 @@ library PriceLibrary {
                         z := add(shl(sub(256, k), p1), shr(k, z))
                         break
                     }
-                    mstore(0x00, 0xae47f702) // `FullMulDivFailed()`.
+                    mstore(0x00, 0xbc7d077b) // `FullMulDivNFailed()`.
                     revert(0x1c, 0x04)
                 }
                 z := shr(and(n, 0xff), z)
@@ -56,7 +56,7 @@ library PriceLibrary {
             if mulmod(x, y, shl(1, k)) {
                 z := add(z, 1)
                 if iszero(z) {
-                    mstore(0x00, 0xae47f702) // `FullMulDivFailed()`.
+                    mstore(0x00, 0xbc7d077b) // `FullMulDivNFailed()`.
                     revert(0x1c, 0x04)
                 }
             }
@@ -91,7 +91,7 @@ library PriceLibrary {
                     // Make sure `z` is less than `2**256`. Also prevents `d == 0`.
                     // Placing the check here seems to give more optimal stack operations.
                     if iszero(gt(d, p1)) {
-                        mstore(0x00, 0xae47f702) // `FullMulDivFailed()`.
+                        mstore(0x00, 0x8bdeab76) // `FullMulNDivFailed()`
                         revert(0x1c, 0x04)
                     }
                     d := div(d, t) // Divide `d` by `t`, which is a power of two.
@@ -135,7 +135,7 @@ library PriceLibrary {
             if mulmod(x, shl(1, k), d) {
                 z := add(z, 1)
                 if iszero(z) {
-                    mstore(0x00, 0xae47f702) // `FullMulDivFailed()`.
+                   mstore(0x00, 0x8bdeab76) // `FullMulNDivFailed()`.
                     revert(0x1c, 0x04)
                 }
             }
