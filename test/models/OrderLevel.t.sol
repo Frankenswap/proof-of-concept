@@ -146,18 +146,20 @@ contract OrderLevelTest is Test {
         OrderId orderId = ticks.placeOrder(params);
         ticks[SqrtPrice.wrap(100)].lastCloseOrderIndex = 1;
 
-        BalanceDelta delta = ticks.removeOrder(orderId);
+        (address maker, BalanceDelta delta) = ticks.removeOrder(orderId);
+        assertEq(maker, address(this));
         assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(0, 10 ether)));
 
         // Remove zeroForOne = fasle
         params.zeroForOne = false;
         orderId = ticks.placeOrder(params);
         ticks[SqrtPrice.wrap(100)].lastCloseOrderIndex = 2;
-        delta = ticks.removeOrder(orderId);
+        (maker, delta) = ticks.removeOrder(orderId);
+        assertEq(maker, address(this));
         assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(10 ether, 0)));
 
         // Remove already closed order will be not affect
-        delta = ticks.removeOrder(orderId);
+        (, delta) = ticks.removeOrder(orderId);
         assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(0, 0)));
     }
 
@@ -167,7 +169,7 @@ contract OrderLevelTest is Test {
         OrderId orderId = placeMockOrder(SqrtPrice.wrap(2 << 96), 100, neighborTicks);
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), 2 << 96);
 
-        BalanceDelta delta = ticks.removeOrder(orderId);
+        (, BalanceDelta delta) = ticks.removeOrder(orderId);
         // amount 1 = 100, amount 0 = 25
         assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(25, 0)));
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), type(uint160).max);
@@ -192,7 +194,7 @@ contract OrderLevelTest is Test {
         // Change order fill amount
         ticks[targetTick].orders[orderId].amountFilled = 2 ether;
 
-        BalanceDelta delta = ticks.removeOrder(orderId);
+        (, BalanceDelta delta) = ticks.removeOrder(orderId);
         // amount1 = 8 ether, so amount0 = 2 ether
         assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(2 ether, 2 ether)));
         assertEq(ticks[targetTick].totalOpenAmount, 2 ether);
@@ -204,7 +206,7 @@ contract OrderLevelTest is Test {
         // Change order fill amount
         ticks[targetTick].orders[orderId].amountFilled = 2 ether;
 
-        delta = ticks.removeOrder(orderId);
+        (, delta) = ticks.removeOrder(orderId);
         // amount0 = 8 ether, so amount1 = 32 ether
         assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(2 ether, 32 ether)));
         assertEq(ticks[targetTick].totalOpenAmount, 4 ether);

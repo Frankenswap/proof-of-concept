@@ -134,14 +134,14 @@ library OrderLevelLibrary {
 
     function removeOrder(mapping(SqrtPrice => OrderLevel) storage self, OrderId orderId)
         internal
-        returns (BalanceDelta delta)
+        returns (address orderMaker, BalanceDelta delta)
     {
         SqrtPrice sqrtPrice = OrderIdLibrary.sqrtPrice(orderId);
         uint64 orderIdIndex = OrderIdLibrary.index(orderId);
         uint64 lastCloseOrderIndex = self[sqrtPrice].lastCloseOrderIndex;
 
         Order memory order = self[sqrtPrice].orders[orderId];
-
+        orderMaker = order.maker;
         if (orderIdIndex <= lastCloseOrderIndex) {
             delta = order.zeroForOne
                 ? toBalanceDelta(0, order.amount.toInt128())
