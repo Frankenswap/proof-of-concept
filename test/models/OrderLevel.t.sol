@@ -2,16 +2,16 @@
 pragma solidity =0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {SqrtPriceLevel, SqrtPriceLevelLibrary} from "../../src/models/SqrtPriceLevel.sol";
+import {OrderLevel, OrderLevelLibrary} from "../../src/models/OrderLevel.sol";
 import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
 import {Order} from "../../src/models/Order.sol";
 import {OrderId} from "../../src/models/OrderId.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/models/BalanceDelta.sol";
 
-contract SqrtPriceLevelTest is Test {
-    using SqrtPriceLevelLibrary for mapping(SqrtPrice => SqrtPriceLevel);
+contract OrderLevelTest is Test {
+    using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
 
-    mapping(SqrtPrice => SqrtPriceLevel) public ticks;
+    mapping(SqrtPrice => OrderLevel) public ticks;
     mapping(OrderId => Order) public orders;
 
     function setUp() public {
@@ -22,7 +22,7 @@ contract SqrtPriceLevelTest is Test {
         internal
         returns (OrderId orderId)
     {
-        SqrtPriceLevelLibrary.PlaceOrderParams memory params = SqrtPriceLevelLibrary.PlaceOrderParams({
+        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
             amount: amount,
@@ -57,13 +57,13 @@ contract SqrtPriceLevelTest is Test {
 
     function verfiyLink(uint256 tickNumber, uint256 targetOrderCount, uint256 totalOrderAmount) internal view {
         SqrtPrice nextTick = SqrtPrice.wrap(0);
-        uint256 orderCount = ticks[nextTick].lastOpenOrder - ticks[nextTick].lastCloseOrder;
+        uint256 orderCount = ticks[nextTick].lastOpenOrderIndex - ticks[nextTick].lastCloseOrderIndex;
         uint256 orderAmount = ticks[nextTick].totalOpenAmount;
 
         for (uint256 i = 0; i < tickNumber; i++) {
             nextTick = ticks[nextTick].next;
 
-            orderCount += ticks[nextTick].lastOpenOrder - ticks[nextTick].lastCloseOrder;
+            orderCount += ticks[nextTick].lastOpenOrderIndex - ticks[nextTick].lastCloseOrderIndex;
             orderAmount += ticks[nextTick].totalOpenAmount;
 
             if (nextTick == SqrtPrice.wrap(type(uint160).max)) {
@@ -85,13 +85,13 @@ contract SqrtPriceLevelTest is Test {
 
     function test_initialize_AlreadyInitialized() public {
         ticks[SqrtPrice.wrap(0)].next = SqrtPrice.wrap(100);
-        vm.expectRevert(SqrtPriceLevelLibrary.SqrtPriceLevelAlreadyInitialized.selector);
+        vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
         ticks.initialize();
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), 100);
 
         ticks[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(100);
         ticks.initialize();
-        vm.expectRevert(SqrtPriceLevelLibrary.SqrtPriceLevelAlreadyInitialized.selector);
+        vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(type(uint160).max)].next), 100);
     }
 
@@ -104,14 +104,14 @@ contract SqrtPriceLevelTest is Test {
         assertEq(orderId.index(), 1);
         assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), 100);
         assertEq(ticks[targetTick].totalOpenAmount, 100);
-        assertEq(ticks[targetTick].lastOpenOrder, 1);
-        assertEq(ticks[targetTick].lastCloseOrder, 0);
+        assertEq(ticks[targetTick].lastOpenOrderIndex, 1);
+        assertEq(ticks[targetTick].lastCloseOrderIndex, 0);
 
         verifyMockOrder(orderId, targetTick);
 
         orderId = placeMockOrder(targetTick, 100, neighborTicks);
         assertEq(ticks[targetTick].totalOpenAmount, 200);
-        assertEq(ticks[targetTick].lastOpenOrder, 2);
+        assertEq(ticks[targetTick].lastOpenOrderIndex, 2);
         assertEq(ticks[targetTick].orders[orderId].amount, 100);
         verifyMockOrder(orderId, targetTick);
     }
@@ -134,7 +134,7 @@ contract SqrtPriceLevelTest is Test {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
         // Remove zeroForOne = true
-        SqrtPriceLevelLibrary.PlaceOrderParams memory params = SqrtPriceLevelLibrary.PlaceOrderParams({
+        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
             amount: 10 ether,
@@ -144,7 +144,7 @@ contract SqrtPriceLevelTest is Test {
         });
 
         OrderId orderId = ticks.placeOrder(params);
-        ticks[SqrtPrice.wrap(100)].lastCloseOrder = 1;
+        ticks[SqrtPrice.wrap(100)].lastCloseOrderIndex = 1;
 
         BalanceDelta delta = ticks.removeOrder(orderId);
         assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(0, 10 ether)));
@@ -152,7 +152,7 @@ contract SqrtPriceLevelTest is Test {
         // Remove zeroForOne = fasle
         params.zeroForOne = false;
         orderId = ticks.placeOrder(params);
-        ticks[SqrtPrice.wrap(100)].lastCloseOrder = 2;
+        ticks[SqrtPrice.wrap(100)].lastCloseOrderIndex = 2;
         delta = ticks.removeOrder(orderId);
         assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(10 ether, 0)));
 
@@ -177,7 +177,7 @@ contract SqrtPriceLevelTest is Test {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
         SqrtPrice targetTick = SqrtPrice.wrap(2 << 96);
         // Remove zeroForOne = true
-        SqrtPriceLevelLibrary.PlaceOrderParams memory params = SqrtPriceLevelLibrary.PlaceOrderParams({
+        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
             amount: 10 ether,
