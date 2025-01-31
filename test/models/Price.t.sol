@@ -163,29 +163,28 @@ contract PriceTest is Test {
     }
 
     function test_fuzz_getAmount0Delta(uint128 amount1, uint64 priceRaw) public pure {
-        vm.assume(amount1 != 0);
+        vm.assume(amount1 > 1 ether);
         vm.assume(priceRaw != 0);
-        vm.assume(uint256(amount1) * uint256(priceRaw) < type(uint128).max >> 1);
+        vm.assume(uint256(amount1) / priceRaw > 0);
+        vm.assume(uint256(amount1) / priceRaw < type(uint128).max >> 1);
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
         uint256 amount0 = uint256(int256(price.getAmount0Delta(amount1)));
 
-        assertEq(amount0 / amount1, priceRaw);
+        // If amount1 = 340282366920938463463374607431768211452, priceRaw = 18446744073709551615
+        // max error: 18.446744073709551612 ether
+        assertApproxEqAbsDecimal(amount1, priceRaw * amount0, 20 ether, 18);
     }
 
-    function test_fuzz_getAmount1Delta(uint128 amount0, uint64 priceRaw) public {
-        vm.assume(amount0 > 1 ether);
+    function test_fuzz_getAmount1Delta(uint128 amount0, uint64 priceRaw) public pure {
+        vm.assume(amount0 != 0);
         vm.assume(priceRaw != 0);
-        vm.assume(uint256(amount0) / priceRaw > 0);
-        vm.assume(uint256(amount0) / priceRaw < type(uint128).max >> 1);
+        vm.assume(uint256(amount0) * priceRaw < type(uint128).max >> 1);
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
         uint256 amount1 = uint256(int256(price.getAmount1Delta(amount0)));
 
-        emit log_uint(amount1);
-        // If amount0 = 340282366920938463463374607431768211452, priceRaw = 18446744073709551615
-        // max error: 18.446744073709551612 ether
-        assertApproxEqAbsDecimal(amount0, priceRaw * amount1, 20 ether, 18);
+        assertEq(amount1 / amount0, priceRaw);
     }
 
     function test_fullMulNDiv_edge() public pure {
@@ -196,16 +195,16 @@ contract PriceTest is Test {
         assertEq(result2, 3127142212820248285282886819185066);
     }
 
-    function test_fuzz_getAmount0WithAmount1(uint128 amount1, uint64 priceRaw) public {
-        vm.assume(amount1 != 0);
+    function test_fuzz_getAmount0WithAmount1(uint128 amount0, uint64 priceRaw) public pure {
+        vm.assume(amount0 != 0);
         vm.assume(priceRaw != 0);
-        vm.assume(uint256(amount1) * uint256(priceRaw) < type(uint128).max >> 1);
+        vm.assume(uint256(amount0) * uint256(priceRaw) < type(uint128).max >> 1);
 
         Price price = Price.wrap(uint160(priceRaw) << 96);
-        uint128 amount0 = uint128(price.getAmount0Delta(amount1));
-        emit log_uint(amount0);
-        uint128 amoun1Other = uint128(price.getAmount1Delta(amount0));
+        uint128 amount1 = uint128(price.getAmount1Delta(amount0));
+        // emit log_uint(amount0);
+        uint128 amoun0Other = uint128(price.getAmount0Delta(amount1));
 
-        assertApproxEqAbs(uint256(amount1), uint256(amoun1Other), 1);
+        assertApproxEqAbs(uint256(amount0), uint256(amoun0Other), 1);
     }
 }

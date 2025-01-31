@@ -163,12 +163,13 @@ contract OrderLevelTest is Test {
 
     function test_removeOrder_removeLink() public {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+        // sqrt price = 2, price = 4
         OrderId orderId = placeMockOrder(SqrtPrice.wrap(2 << 96), 100, neighborTicks);
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), 2 << 96);
 
         BalanceDelta delta = ticks.removeOrder(orderId);
-
-        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(400, 0)));
+        // amount 1 = 100, amount 0 = 25
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(25, 0)));
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), type(uint160).max);
         assertEq(ticks[SqrtPrice.wrap(100)].totalOpenAmount, 0);
     }
@@ -192,7 +193,8 @@ contract OrderLevelTest is Test {
         ticks[targetTick].orders[orderId].amountFilled = 2 ether;
 
         BalanceDelta delta = ticks.removeOrder(orderId);
-        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(32 ether, 2 ether)));
+        // amount1 = 8 ether, so amount0 = 2 ether
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(2 ether, 2 ether)));
         assertEq(ticks[targetTick].totalOpenAmount, 2 ether);
 
         // Remove zeroForOne = false
@@ -203,7 +205,8 @@ contract OrderLevelTest is Test {
         ticks[targetTick].orders[orderId].amountFilled = 2 ether;
 
         delta = ticks.removeOrder(orderId);
-        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(2 ether, 2 ether)));
+        // amount0 = 8 ether, so amount1 = 32 ether
+        assertEq(BalanceDelta.unwrap(delta), BalanceDelta.unwrap(toBalanceDelta(2 ether, 32 ether)));
         assertEq(ticks[targetTick].totalOpenAmount, 4 ether);
     }
 
