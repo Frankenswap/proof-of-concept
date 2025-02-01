@@ -4,6 +4,9 @@ pragma solidity ^0.8.27;
 import {Order} from "./Order.sol";
 import {OrderId, OrderIdLibrary} from "./OrderId.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
+import {Price, PriceLibrary} from "./Price.sol";
+import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
+import {SafeCast} from "../library/SafeCast.sol";
 
 struct OrderLevel {
     SqrtPrice prev;
@@ -18,6 +21,8 @@ using OrderLevelLibrary for OrderLevel global;
 
 /// @title OrderLevelLibrary
 library OrderLevelLibrary {
+    using SafeCast for uint128;
+
     error OrderLevelAlreadyInitialized();
 
     function initialize(mapping(SqrtPrice => OrderLevel) storage self) internal {
@@ -125,5 +130,46 @@ library OrderLevelLibrary {
 
         orderId = OrderIdLibrary.from(params.targetTick, self[targetTick].lastOpenOrderIndex);
         self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, params.amount);
+    }
+
+    function removeOrder(mapping(SqrtPrice => OrderLevel) storage self, OrderId orderId)
+        internal
+        returns (address orderMaker, BalanceDelta delta)
+    {
+        SqrtPrice sqrtPrice = OrderIdLibrary.sqrtPrice(orderId);
+        uint64 orderIdIndex = OrderIdLibrary.index(orderId);
+        uint64 lastCloseOrderIndex = self[sqrtPrice].lastCloseOrderIndex;
+
+        Order memory order = self[sqrtPrice].orders[orderId];
+        orderMaker = order.maker;
+        if (orderIdIndex <= lastCloseOrderIndex) {
+            delta = order.zeroForOne
+                ? toBalanceDelta(0, order.amount.toInt128())
+                : toBalanceDelta(order.amount.toInt128(), 0);
+        } else {
+            // lastOpenOrderIndex and lastCloseOrderIndex does not need to be updated.
+            // totalOpenAmount should update
+            // If updated totalOpenAmount == 0, should remove the sqrtPrice level in linked list
+
+            Price price = PriceLibrary.fromSqrtPrice(sqrtPrice);
+            uint128 orderRemaining = order.amount - order.amountFilled;
+            uint128 cacheTotalOpenAmount = self[sqrtPrice].totalOpenAmount - orderRemaining;
+
+            if (cacheTotalOpenAmount == 0) {
+                SqrtPrice cachePrevTick = self[sqrtPrice].prev;
+                SqrtPrice cacheNextTick = self[sqrtPrice].next;
+
+                self[cachePrevTick].next = cacheNextTick;
+                self[cacheNextTick].prev = cachePrevTick;
+            }
+
+            self[sqrtPrice].totalOpenAmount = cacheTotalOpenAmount;
+
+            delta = order.zeroForOne
+                ? toBalanceDelta(price.getAmount0Delta(orderRemaining), order.amountFilled.toInt128())
+                : toBalanceDelta(order.amountFilled.toInt128(), price.getAmount1Delta(orderRemaining));
+        }
+
+        delete self[OrderIdLibrary.sqrtPrice(orderId)].orders[orderId];
     }
 }
