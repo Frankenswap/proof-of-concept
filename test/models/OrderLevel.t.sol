@@ -83,6 +83,7 @@ contract OrderLevelTest is Test {
         assertEq(SqrtPrice.unwrap(prevTick), 0);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_initialize_AlreadyInitialized() public {
         ticks[SqrtPrice.wrap(0)].next = SqrtPrice.wrap(100);
         vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
@@ -90,8 +91,10 @@ contract OrderLevelTest is Test {
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), 100);
 
         ticks[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(100);
-        ticks.initialize();
+
         vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
+        ticks.initialize();
+        
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(type(uint160).max)].next), 100);
     }
 
