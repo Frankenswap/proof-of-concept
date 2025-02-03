@@ -172,4 +172,60 @@ library OrderLevelLibrary {
 
         delete self[OrderIdLibrary.sqrtPrice(orderId)].orders[orderId];
     }
+
+    struct FillCache {
+        SqrtPrice prev;
+        SqrtPrice next;
+        uint128 totalOpenAmount;
+        uint64 lastOpenOrderIndex;
+        uint64 lastCloseOrderIndex;
+    }
+
+    function fillOrder(
+        mapping(SqrtPrice => OrderLevel) storage self,
+        bool zeroForOne,
+        SqrtPrice sqrtPrice,
+        int128 amountSpecified
+    ) internal returns (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext, BalanceDelta delta) {
+        OrderLevel storage level = self[sqrtPrice];
+        Price price = PriceLibrary.fromSqrtPrice(sqrtPrice);
+
+        // TODO: Use assmebly to optimize
+        FillCache memory cache = FillCache({
+            prev: level.prev,
+            next: level.next,
+            totalOpenAmount: level.totalOpenAmount,
+            lastOpenOrderIndex: level.lastOpenOrderIndex,
+            lastCloseOrderIndex: level.lastCloseOrderIndex
+        });
+
+        // zeroForOne = true, sqrtPriceLimitX96 < currentPrice
+        sqrtPriceNext = zeroForOne ? cache.prev : cache.next;
+
+        uint128 amount = amountSpecified < 0 ? uint128(-amountSpecified) : uint128(amountSpecified);
+        uint128 amountRemaining;
+
+        if (amount >= cache.totalOpenAmount) {
+            amountRemaining = amount - level.totalOpenAmount;
+
+            level.totalOpenAmount = 0;
+            level.lastCloseOrderIndex = cache.lastOpenOrderIndex;
+
+            self[cache.prev].next = cache.next;
+            self[cache.next].prev = cache.prev;
+
+            if (zeroForOne) {
+                // zeroForOne = true, order level is full of token 1
+                delta =
+                    toBalanceDelta(price.getAmount0DeltaUp(cache.totalOpenAmount), -cache.totalOpenAmount.toInt128());
+            } else {
+                delta =
+                    toBalanceDelta(-cache.totalOpenAmount.toInt128(), price.getAmount1DeltaUp(cache.totalOpenAmount));
+            }
+
+            amountSpecifiedRemaining = amountSpecified < 0
+                ? amountSpecified + cache.totalOpenAmount.toInt128()
+                : (amount - cache.totalOpenAmount).toInt128();
+        } else {}
+    }
 }

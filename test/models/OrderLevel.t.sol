@@ -94,7 +94,7 @@ contract OrderLevelTest is Test {
 
         vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
         ticks.initialize();
-        
+
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(type(uint160).max)].next), 100);
     }
 
@@ -232,5 +232,24 @@ contract OrderLevelTest is Test {
         placeMockOrder(tick3.targetTick, tick3.amount, neighborTicks);
 
         verfiyLink(4, 3, uint256(tick1.amount) + tick2.amount + tick3.amount);
+    }
+
+    function test_fuzz_fillOrder_full(PlaceMockOrderParams calldata tick, uint32 amountDelta) public {
+        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+        bool zeroForOne = true;
+
+        placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
+
+        if (zeroForOne) {
+            (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext, ) =
+                ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) + amountDelta));
+
+            assertEq(amountSpecifiedRemaining, int128(uint128(amountDelta)));
+            assertEq(SqrtPrice.unwrap(sqrtPriceNext), 0);
+
+            assertEq(ticks[tick.targetTick].totalOpenAmount, 0);
+            assertEq(ticks[tick.targetTick].lastOpenOrderIndex, 1);
+            assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 1);
+        }
     }
 }
