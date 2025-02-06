@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 struct Order {
     address maker;
     bool zeroForOne;
+    // amount = exactOut
     uint128 amount;
     uint128 amountFilled;
 }

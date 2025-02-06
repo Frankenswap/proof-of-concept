@@ -4,6 +4,7 @@ pragma solidity =0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {OrderLevel, OrderLevelLibrary} from "../../src/models/OrderLevel.sol";
 import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
+import {Price, PriceLibrary} from "../../src/models/Price.sol";
 import {Order} from "../../src/models/Order.sol";
 import {OrderId} from "../../src/models/OrderId.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/models/BalanceDelta.sol";
@@ -235,16 +236,18 @@ contract OrderLevelTest is Test {
     }
 
     function test_fuzz_fillOrder_full(PlaceMockOrderParams calldata tick, uint32 amountDelta) public {
+        Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
+        vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
         bool zeroForOne = true;
 
         placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
 
         if (zeroForOne) {
-            (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext, ) =
-                ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) + amountDelta));
+            int128 amount = -int128(uint128(tick.amount) + uint128(amountDelta));
 
-            assertEq(amountSpecifiedRemaining, int128(uint128(amountDelta)));
+            (, SqrtPrice sqrtPriceNext,) = ticks.fillOrder(zeroForOne, tick.targetTick, amount);
+
             assertEq(SqrtPrice.unwrap(sqrtPriceNext), 0);
 
             assertEq(ticks[tick.targetTick].totalOpenAmount, 0);
