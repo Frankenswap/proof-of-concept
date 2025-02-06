@@ -8,8 +8,6 @@ import {Price, PriceLibrary} from "./Price.sol";
 import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
 import {SafeCast} from "../library/SafeCast.sol";
 
-import {console} from "forge-std/console.sol";
-
 struct OrderLevel {
     SqrtPrice prev;
     SqrtPrice next;
@@ -249,8 +247,6 @@ library OrderLevelLibrary {
                     : (amount - cache.totalOpenAmount).toInt128(); // exactIn, zeroForOne = false, amountSpecified = token 1
             }
         } else {
-            console.log("True");
-
             mapping(OrderId => Order) storage orders = level.orders;
             uint128 amountRemaining = amount;
 
