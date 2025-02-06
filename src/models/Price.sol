@@ -135,7 +135,7 @@ library PriceLibrary {
             if mulmod(x, shl(1, k), d) {
                 z := add(z, 1)
                 if iszero(z) {
-                   mstore(0x00, 0x8bdeab76) // `FullMulNDivFailed()`.
+                    mstore(0x00, 0x8bdeab76) // `FullMulNDivFailed()`.
                     revert(0x1c, 0x04)
                 }
             }

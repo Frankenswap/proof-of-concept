@@ -8,6 +8,8 @@ import {Price, PriceLibrary} from "./Price.sol";
 import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
 import {SafeCast} from "../library/SafeCast.sol";
 
+import {console} from "forge-std/console.sol";
+
 struct OrderLevel {
     SqrtPrice prev;
     SqrtPrice next;
@@ -246,6 +248,52 @@ library OrderLevelLibrary {
                     ? amountSpecified + token0Output // exactOut, zeroForOne = false, amountSpecified = token 0
                     : (amount - cache.totalOpenAmount).toInt128(); // exactIn, zeroForOne = false, amountSpecified = token 1
             }
-        } else {}
+        } else {
+            console.log("True");
+
+            mapping(OrderId => Order) storage orders = level.orders;
+            uint128 amountRemaining = amount;
+
+            level.totalOpenAmount -= amount;
+            for (uint64 i = cache.lastCloseOrderIndex; amountRemaining != 0; i++) {
+                OrderId order = OrderIdLibrary.from(sqrtPrice, i);
+
+                // TODO: optimize
+                uint128 available = orders[order].amount - orders[order].amountFilled;
+
+                if (available < amountRemaining) {
+                    amountRemaining -= available;
+                    orders[order].amountFilled += available;
+                } else {
+                    // Fill all amount remaining
+                    orders[order].amountFilled += amountRemaining;
+
+                    amountRemaining = 0;
+
+                    // Update lastCloseOrderIndex
+                    if (orders[order].amountFilled == orders[order].amount) {
+                        level.lastCloseOrderIndex = order.index();
+                    } else {
+                        if (order.index() == 0) {
+                            level.lastCloseOrderIndex = 0;
+                        }
+
+                        level.lastCloseOrderIndex = order.index() - 1;
+                    }
+                }
+            }
+
+            if (zeroForOne) {
+                // zeroForOne = true, order totalOpenAmount is amount 0(exactOut)
+                int128 token1Output = price.getAmount1DeltaUp(amount);
+                delta = toBalanceDelta(0, token1Output);
+            } else {
+                // zeroForOne = false, order totalOpenAmount is amount 1(exactOut)
+                int128 token0Output = price.getAmount0DeltaUp(amount);
+                delta = toBalanceDelta(token0Output, 0);
+            }
+
+            amountSpecifiedRemaining = 0;
+        }
     }
 }
