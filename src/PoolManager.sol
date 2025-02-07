@@ -8,7 +8,6 @@ import {OrderId} from "./models/OrderId.sol";
 import {Pool} from "./models/Pool.sol";
 import {PoolId} from "./models/PoolId.sol";
 import {PoolKey} from "./models/PoolKey.sol";
-import {Position} from "./models/Position.sol";
 import {SqrtPrice} from "./models/SqrtPrice.sol";
 import {ShareToken} from "./ShareToken.sol";
 
@@ -29,9 +28,21 @@ contract PoolManager is IPoolManager {
     {
         poolId = poolKey.toId();
         shareToken = new ShareToken{salt: PoolId.unwrap(poolId)}();
-        (Position position) = _pools[poolId].initialize(shareToken, sqrtPrice, poolKey.configs);
+        (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper) =
+            _pools[poolId].initialize(shareToken, sqrtPrice, poolKey.configs);
 
-        emit Initialize(poolId, poolKey.token0, poolKey.token1, poolKey.configs, shareToken, sqrtPrice, position);
+        emit Initialize(
+            poolId,
+            poolKey.token0,
+            poolKey.token1,
+            poolKey.configs,
+            shareToken,
+            sqrtPrice,
+            rangeRatioLower,
+            rangeRatioUpper,
+            thresholdRatioLower,
+            thresholdRatioUpper
+        );
     }
 
     /// @inheritdoc IPoolManager

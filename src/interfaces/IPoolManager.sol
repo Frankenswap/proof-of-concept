@@ -7,7 +7,6 @@ import {BalanceDelta} from "../models/BalanceDelta.sol";
 import {OrderId} from "../models/OrderId.sol";
 import {PoolId} from "../models/PoolId.sol";
 import {PoolKey} from "../models/PoolKey.sol";
-import {Position} from "../models/Position.sol";
 import {SqrtPrice} from "../models/SqrtPrice.sol";
 import {Token} from "../models/Token.sol";
 
@@ -18,8 +17,12 @@ interface IPoolManager {
     /// @param token0 The first token
     /// @param token1 The second token
     /// @param configs The pool configs
-    /// @param sqrtPrice The initial square root price
     /// @param shareToken The share token
+    /// @param sqrtPrice The initial square root price
+    /// @param rangeRatioLower The lower range ratio
+    /// @param rangeRatioUpper The upper range ratio
+    /// @param thresholdRatioLower The lower threshold ratio
+    /// @param thresholdRatioUpper The upper threshold ratio
     event Initialize(
         PoolId indexed poolId,
         Token indexed token0,
@@ -27,7 +30,10 @@ interface IPoolManager {
         IConfigs configs,
         IShareToken shareToken,
         SqrtPrice sqrtPrice,
-        Position position
+        uint24 rangeRatioLower,
+        uint24 rangeRatioUpper,
+        uint24 thresholdRatioLower,
+        uint24 thresholdRatioUpper
     );
 
     /// @notice Emitted when share is minted
