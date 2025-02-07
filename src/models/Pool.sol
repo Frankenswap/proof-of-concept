@@ -4,12 +4,12 @@ pragma solidity =0.8.28;
 import {IConfigs} from "../interfaces/IConfigs.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 import {Position, PositionLibrary} from "./Position.sol";
-import {Reserve} from "./Reserve.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 
 struct Pool {
-    Reserve reserve;
+    uint128 reserve0;
+    uint128 reserve1;
     IShareToken shareToken;
     SqrtPrice sqrtPrice;
     Position position;
@@ -43,7 +43,7 @@ library PoolLibrary {
         require(SqrtPrice.unwrap(sqrtPrice) != 0, SqrtPriceCannotBeZero());
 
         (uint32 rangeRatioLower, uint32 rangeRatioUpper, uint32 thresholdRatioLower, uint32 thresholdRatioUpper) =
-            configs.getPositionRatios(sqrtPrice, Reserve.wrap(0));
+            configs.getPositionRatios(sqrtPrice, 0, 0);
         position = PositionLibrary.from(0, rangeRatioLower, rangeRatioUpper, thresholdRatioLower, thresholdRatioUpper);
 
         self.shareToken = shareToken;
