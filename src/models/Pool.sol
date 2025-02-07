@@ -3,7 +3,6 @@ pragma solidity =0.8.28;
 
 import {IConfigs} from "../interfaces/IConfigs.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
-import {Position, PositionLibrary} from "./Position.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 
@@ -12,7 +11,10 @@ struct Pool {
     uint128 reserve1;
     IShareToken shareToken;
     SqrtPrice sqrtPrice;
-    Position position;
+    uint24 rangeRatioLower;
+    uint24 rangeRatioUpper;
+    uint24 thresholdRatioLower;
+    uint24 thresholdRatioUpper;
     SqrtPrice bestAsk;
     SqrtPrice bestBid;
     mapping(SqrtPrice => OrderLevel) orderLevels;
@@ -37,18 +39,20 @@ library PoolLibrary {
     /// @param configs The configs contract
     function initialize(Pool storage self, IShareToken shareToken, SqrtPrice sqrtPrice, IConfigs configs)
         internal
-        returns (Position position)
+        returns (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper)
     {
         require(!self.isInitialized(), PoolAlreadyInitialized());
         require(SqrtPrice.unwrap(sqrtPrice) != 0, SqrtPriceCannotBeZero());
 
-        (uint32 rangeRatioLower, uint32 rangeRatioUpper, uint32 thresholdRatioLower, uint32 thresholdRatioUpper) =
-            configs.getPositionRatios(sqrtPrice, 0, 0);
-        position = PositionLibrary.from(0, rangeRatioLower, rangeRatioUpper, thresholdRatioLower, thresholdRatioUpper);
+        (rangeRatioLower, rangeRatioUpper, thresholdRatioLower, thresholdRatioUpper) =
+            configs.getRatios(sqrtPrice, 0, 0);
 
         self.shareToken = shareToken;
         self.sqrtPrice = sqrtPrice;
-        self.position = position;
+        self.rangeRatioLower = rangeRatioLower;
+        self.rangeRatioUpper = rangeRatioUpper;
+        self.thresholdRatioLower = thresholdRatioLower;
+        self.thresholdRatioUpper = thresholdRatioUpper;
         self.bestAsk = SqrtPrice.wrap(0);
         self.bestBid = SqrtPrice.wrap(type(uint160).max);
         self.orderLevels.initialize();
