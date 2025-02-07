@@ -21,46 +21,32 @@ contract PoolManager is IPoolManager {
     }
 
     /// @inheritdoc IPoolManager
-    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice)
+    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice, uint128 amount0Desired, uint128 amount1Desired)
         external
         validatePoolKey(poolKey)
-        returns (PoolId poolId, IShareToken shareToken)
+        returns (PoolId poolId, IShareToken shareToken, uint128 shares, BalanceDelta balanceDelta)
     {
         poolId = poolKey.toId();
         shareToken = new ShareToken{salt: PoolId.unwrap(poolId)}();
-        (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper) =
-            _pools[poolId].initialize(shareToken, sqrtPrice, poolKey.configs);
+        (shares, balanceDelta) =
+            _pools[poolId].initialize(poolKey.configs, shareToken, sqrtPrice, amount0Desired, amount1Desired);
 
         emit Initialize(
-            poolId,
-            poolKey.token0,
-            poolKey.token1,
-            poolKey.configs,
-            shareToken,
-            sqrtPrice,
-            rangeRatioLower,
-            rangeRatioUpper,
-            thresholdRatioLower,
-            thresholdRatioUpper
+            poolKey.token0, poolKey.token1, poolKey.configs, poolId, shareToken, sqrtPrice, shares, balanceDelta
         );
     }
 
     /// @inheritdoc IPoolManager
-    function mint(PoolKey calldata poolKey, uint128 amount0, uint128 amount1)
+    function modifyReserves(PoolKey calldata poolKey, int128 sharesDelta)
         external
         validatePoolKey(poolKey)
-        returns (BalanceDelta balanceDelta, int128 shareDelta)
+        returns (BalanceDelta balanceDelta)
     {
-        // TODO: Implement
-    }
+        PoolId poolId = poolKey.toId();
 
-    /// @inheritdoc IPoolManager
-    function burn(PoolKey calldata poolKey, uint128 share)
-        external
-        validatePoolKey(poolKey)
-        returns (BalanceDelta balanceDelta, int128 shareDelta)
-    {
-        // TODO: Implement
+        balanceDelta = _pools[poolId].modifyReserves(sharesDelta);
+
+        emit ModifyReserves(poolId, msg.sender, sharesDelta, balanceDelta);
     }
 
     /// @inheritdoc IPoolManager
