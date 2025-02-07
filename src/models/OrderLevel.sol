@@ -259,7 +259,6 @@ library OrderLevelLibrary {
 
                 if (available < amountRemaining) {
                     amountRemaining -= available;
-                    orders[order].amountFilled += available;
                 } else {
                     // Fill all amount remaining
                     orders[order].amountFilled += amountRemaining;
@@ -270,10 +269,6 @@ library OrderLevelLibrary {
                     if (orders[order].amountFilled == orders[order].amount) {
                         level.lastCloseOrderIndex = order.index();
                     } else {
-                        if (order.index() == 0) {
-                            level.lastCloseOrderIndex = 0;
-                        }
-
                         level.lastCloseOrderIndex = order.index() - 1;
                     }
                 }

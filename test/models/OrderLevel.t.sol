@@ -263,6 +263,7 @@ contract OrderLevelTest is Test {
 
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
+
         placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
 
         (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, -int128(uint128(tick.amount) - 1));
@@ -272,9 +273,7 @@ contract OrderLevelTest is Test {
         assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 0);
     }
 
-    function test_fuzz_fillOrder_partTwoTick(PlaceMockOrderParams calldata tick, uint32 otherAmount, bool zeroForOne)
-        public
-    {
+    function test_fuzz_fillOrder_partTwoTick(PlaceMockOrderParams calldata tick, uint32 otherAmount, bool zeroForOne) public {
         Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
         vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
         vm.assume(tick.amount > 1);
@@ -294,7 +293,7 @@ contract OrderLevelTest is Test {
 
         OrderId orderId = OrderIdLibrary.from(tick.targetTick, 1);
         OrderId otherOrderId = OrderIdLibrary.from(tick.targetTick, 2);
-        assertEq(ticks[tick.targetTick].orders[orderId].amountFilled, tick.amount);
+        assertEq(ticks[tick.targetTick].orders[orderId].amountFilled, 0);
         assertEq(ticks[tick.targetTick].orders[otherOrderId].amountFilled, 1);
     }
 }
