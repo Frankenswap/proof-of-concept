@@ -2,13 +2,14 @@
 pragma solidity =0.8.28;
 
 import {IShareToken} from "../interfaces/IShareToken.sol";
-import {SafeCast} from "../library/SafeCast.sol";
 import {FullMath} from "../library/FullMath.sol";
+import {LiquidityMath} from "../library/LiquidityMath.sol";
+import {SafeCast} from "../library/SafeCast.sol";
 import {ShareToken} from "../ShareToken.sol";
 import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
 import {PoolId} from "./PoolId.sol";
 import {PoolKey} from "./PoolKey.sol";
-import {SqrtPrice, SqrtPriceLibrary} from "./SqrtPrice.sol";
+import {SqrtPrice} from "./SqrtPrice.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 
 struct Pool {
@@ -71,12 +72,12 @@ library PoolLibrary {
         SqrtPrice sqrtPriceUpper =
             SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioUpper, 1e6).toUint160());
 
-        uint128 liquidityLower = SqrtPriceLibrary.getLiquidityLower(sqrtPrice, sqrtPriceLower, amount1Desired);
-        uint128 liquidityUpper = SqrtPriceLibrary.getLiquidityUpper(sqrtPrice, sqrtPriceUpper, amount0Desired);
+        uint128 liquidityLower = LiquidityMath.getLiquidityLower(sqrtPrice, sqrtPriceLower, amount1Desired);
+        uint128 liquidityUpper = LiquidityMath.getLiquidityUpper(sqrtPrice, sqrtPriceUpper, amount0Desired);
 
         shares = liquidityLower > liquidityUpper ? liquidityUpper : liquidityLower;
-        uint256 amount0 = SqrtPriceLibrary.getAmount0(sqrtPrice, sqrtPriceUpper, shares + minShares, true);
-        uint256 amount1 = SqrtPriceLibrary.getAmount1(sqrtPriceLower, sqrtPrice, shares + minShares, true);
+        uint256 amount0 = LiquidityMath.getAmount0(sqrtPrice, sqrtPriceUpper, shares + minShares, true);
+        uint256 amount1 = LiquidityMath.getAmount1(sqrtPriceLower, sqrtPrice, shares + minShares, true);
         balanceDelta = toBalanceDelta(-amount0.uint256toInt128(), -amount1.uint256toInt128());
 
         self.reserve0 = amount0.toUint128();
