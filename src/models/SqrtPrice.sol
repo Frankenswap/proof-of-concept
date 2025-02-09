@@ -7,7 +7,6 @@ import {FullMath} from "../library/FullMath.sol";
 type SqrtPrice is uint160;
 
 using {equals as ==, notEquals as !=, greaterThan as >, lessThan as <} for SqrtPrice global;
-using SqrtPriceLibrary for SqrtPrice global;
 
 function equals(SqrtPrice sqrtPrice, SqrtPrice other) pure returns (bool) {
     return SqrtPrice.unwrap(sqrtPrice) == SqrtPrice.unwrap(other);
@@ -31,8 +30,6 @@ library SqrtPriceLibrary {
         pure
         returns (uint256 amount0)
     {
-        // TODO: check sqrtPriceLower greater than 0
-
         uint256 numerator1 = uint256(liquidity) << 96;
         uint256 numerator2 = SqrtPrice.unwrap(sqrtPriceUpper) - SqrtPrice.unwrap(sqrtPriceLower);
 
@@ -55,5 +52,23 @@ library SqrtPriceLibrary {
         uint256 numerator = SqrtPrice.unwrap(sqrtPriceUpper) - SqrtPrice.unwrap(sqrtPriceLower);
 
         amount1 = roundUp ? FullMath.mulDivNUp(liquidity, numerator, 96) : FullMath.mulDivN(liquidity, numerator, 96);
+    }
+
+    function getLiquidityUpper(SqrtPrice sqrtPrice, SqrtPrice sqrtPriceUpper, uint256 amount0)
+        internal
+        pure
+        returns (uint128 liquidityUpper)
+    {
+        // TODO: implement
+        // liquidityUpper = amount0 * (sqrtPrice * sqrtPriceUpper) / (sqrtPriceUpper - sqrtPrice)
+    }
+
+    function getLiquidityLower(SqrtPrice sqrtPrice, SqrtPrice sqrtPriceLower, uint256 amount1)
+        internal
+        pure
+        returns (uint128 liquidityLower)
+    {
+        // TODO: implement
+        // liquidityLower = amount1 / (sqrtPrice - sqrtPriceLower)
     }
 }

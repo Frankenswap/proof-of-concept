@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.28;
 
-import {IConfigs} from "../interfaces/IConfigs.sol";
 import {IShareToken} from "../interfaces/IShareToken.sol";
 import {SafeCast} from "../library/SafeCast.sol";
 import {FullMath} from "../library/FullMath.sol";
+import {ShareToken} from "../ShareToken.sol";
 import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
+import {PoolId} from "./PoolId.sol";
+import {PoolKey} from "./PoolKey.sol";
 import {SqrtPrice, SqrtPriceLibrary} from "./SqrtPrice.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 
@@ -41,63 +43,44 @@ library PoolLibrary {
     using SafeCast for uint256;
     using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
 
-    // /// @notice Initialize the pool
-    // /// @param self The pool
-    // /// @param shareToken The share token contract
-    // /// @param sqrtPrice The initial square root price
-    // /// @param configs The configs contract
-    // function initialize(
-    //     Pool storage self,
-    //     IShareToken shareToken,
-    //     SqrtPrice sqrtPrice,
-    //     IConfigs configs,
-    //     uint128 liquidity
-    // ) internal returns (BalanceDelta balanceDelta) {
-
-    //     int128 amount0 = SqrtPriceLibrary.getAmount0(sqrtPrice, sqrtPriceUpper, liquidity, true).uint256toInt128();
-    //     int128 amount1 = SqrtPriceLibrary.getAmount1(sqrtPriceLower, sqrtPrice, liquidity, true).uint256toInt128();
-
-    //
-    // }
-
     function initialize(
         Pool storage self,
-        IConfigs configs,
-        IShareToken shareToken,
+        PoolKey calldata poolKey,
         SqrtPrice sqrtPrice,
         uint128 amount0Desired,
         uint128 amount1Desired
-    ) internal returns (uint128 shares, BalanceDelta balanceDelta) {
+    ) internal returns (IShareToken shareToken, uint128 shares, BalanceDelta balanceDelta) {
         require(!self.isInitialized(), PoolAlreadyInitialized());
         require(SqrtPrice.unwrap(sqrtPrice) != 0, SqrtPriceCannotBeZero());
 
-        (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper) =
-            configs.getRatios(sqrtPrice, 0, 0);
-        // TODO: need to validate ratio values
-        // TODO: get MIN_LIQUIDITY from configs
+        PoolId poolId = poolKey.toId();
+        (
+            uint24 rangeRatioLower,
+            uint24 rangeRatioUpper,
+            uint24 thresholdRatioLower,
+            uint24 thresholdRatioUpper,
+            uint32 minShares
+        ) = poolKey.configs.initialize(poolId, poolKey.token0, poolKey.token1, sqrtPrice);
+        // TODO: validate returned values
 
-        // TODO: not safe, neet to check for overflow
-        // TODO: hardcoded 1e6 for now, move to somewhere else
-        uint256 sqrtPriceLower = FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioLower, 1e6);
-        uint256 sqrtPriceUpper = FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioUpper, 1e6);
+        shareToken = new ShareToken{salt: PoolId.unwrap(poolId)}();
 
-        // TODO: wait for liquidity library
-        uint128 liquidityLower;
-        uint128 liquidityUpper;
+        // TODO: hardcoding 1e6 for now
+        SqrtPrice sqrtPriceLower =
+            SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioLower, 1e6).toUint160());
+        SqrtPrice sqrtPriceUpper =
+            SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioUpper, 1e6).toUint160());
 
-        // TODO: wait for liquidity library
-        uint128 amount0;
-        uint128 amount1;
-        if (liquidityLower > liquidityUpper) {
-            shares = liquidityUpper;
-        } else {
-            shares = liquidityLower;
-        }
+        uint128 liquidityLower = SqrtPriceLibrary.getLiquidityLower(sqrtPrice, sqrtPriceLower, amount1Desired);
+        uint128 liquidityUpper = SqrtPriceLibrary.getLiquidityUpper(sqrtPrice, sqrtPriceUpper, amount0Desired);
 
-        balanceDelta = toBalanceDelta(-amount0.toInt128(), -amount1.toInt128());
+        shares = liquidityLower > liquidityUpper ? liquidityUpper : liquidityLower;
+        uint256 amount0 = SqrtPriceLibrary.getAmount0(sqrtPrice, sqrtPriceUpper, shares + minShares, true);
+        uint256 amount1 = SqrtPriceLibrary.getAmount1(sqrtPriceLower, sqrtPrice, shares + minShares, true);
+        balanceDelta = toBalanceDelta(-amount0.uint256toInt128(), -amount1.uint256toInt128());
 
-        self.reserve0 = amount0;
-        self.reserve1 = amount1;
+        self.reserve0 = amount0.toUint128();
+        self.reserve1 = amount1.toUint128();
         self.shareToken = shareToken;
         self.sqrtPrice = sqrtPrice;
         self.rangeRatioLower = rangeRatioLower;
@@ -107,6 +90,9 @@ library PoolLibrary {
         self.bestAsk = SqrtPrice.wrap(0);
         self.bestBid = SqrtPrice.wrap(type(uint160).max);
         self.orderLevels.initialize();
+
+        shareToken.mint(address(0), minShares);
+        shareToken.mint(msg.sender, shares);
     }
 
     function modifyReserves(Pool storage self, int128 sharesDelta) internal returns (BalanceDelta balanceDelta) {
@@ -121,6 +107,8 @@ library PoolLibrary {
             self.reserve0 += uint128(amount0.uint256toInt128());
             self.reserve1 += uint128(amount1.uint256toInt128());
             balanceDelta = toBalanceDelta(-amount0.uint256toInt128(), -amount1.uint256toInt128());
+
+            self.shareToken.mint(msg.sender, uint128(sharesDelta));
         } else {
             uint256 amount0 = FullMath.mulDiv(self.reserve0, uint128(-sharesDelta), totalShares);
             uint256 amount1 = FullMath.mulDiv(self.reserve1, uint128(-sharesDelta), totalShares);
@@ -128,6 +116,8 @@ library PoolLibrary {
             self.reserve0 -= uint128(amount0.uint256toInt128());
             self.reserve1 -= uint128(amount1.uint256toInt128());
             balanceDelta = toBalanceDelta(amount0.uint256toInt128(), amount1.uint256toInt128());
+
+            self.shareToken.burn(msg.sender, uint128(-sharesDelta));
         }
     }
 

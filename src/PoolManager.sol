@@ -9,7 +9,6 @@ import {Pool} from "./models/Pool.sol";
 import {PoolId} from "./models/PoolId.sol";
 import {PoolKey} from "./models/PoolKey.sol";
 import {SqrtPrice} from "./models/SqrtPrice.sol";
-import {ShareToken} from "./ShareToken.sol";
 
 /// @title PoolManager
 contract PoolManager is IPoolManager {
@@ -27,9 +26,8 @@ contract PoolManager is IPoolManager {
         returns (PoolId poolId, IShareToken shareToken, uint128 shares, BalanceDelta balanceDelta)
     {
         poolId = poolKey.toId();
-        shareToken = new ShareToken{salt: PoolId.unwrap(poolId)}();
-        (shares, balanceDelta) =
-            _pools[poolId].initialize(poolKey.configs, shareToken, sqrtPrice, amount0Desired, amount1Desired);
+        (shareToken, shares, balanceDelta) =
+            _pools[poolId].initialize(poolKey, sqrtPrice, amount0Desired, amount1Desired);
 
         emit Initialize(
             poolKey.token0, poolKey.token1, poolKey.configs, poolId, shareToken, sqrtPrice, shares, balanceDelta
