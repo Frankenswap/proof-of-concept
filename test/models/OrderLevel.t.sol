@@ -235,27 +235,32 @@ contract OrderLevelTest is Test {
         verfiyLink(4, 3, uint256(tick1.amount) + tick2.amount + tick3.amount);
     }
 
-    function test_fuzz_fillOrder_full(PlaceMockOrderParams calldata tick, uint32 amountDelta) public {
-        Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
-        vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
+    // TODO: ExactOut
+    function test_fuzz_test_fuzz_fillOrder_full(SqrtPrice targetTick, uint32 amount, uint32 amountDelta, bool zeroForOne) public {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
-        bool zeroForOne = true;
+        Price price = PriceLibrary.fromSqrtPrice(targetTick);
+        vm.assume(uint256(amount) * Price.unwrap(price) < type(uint160).max);
 
-        placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
+        int128 fillAmount = int128(uint128(amount) + uint128(amountDelta));
+
+        placeMockOrder(targetTick, amount, neighborTicks);
+
+        (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext,) =
+            ticks.fillOrder(zeroForOne, targetTick, fillAmount);
+
+        assertEq(uint128(amountSpecifiedRemaining), uint128(amountDelta));
+        assertEq(ticks[targetTick].totalOpenAmount, 0);
+        assertEq(ticks[targetTick].lastOpenOrderIndex, 1);
+        assertEq(ticks[targetTick].lastCloseOrderIndex, 1);
 
         if (zeroForOne) {
-            int128 amount = -int128(uint128(tick.amount) + uint128(amountDelta));
-
-            (, SqrtPrice sqrtPriceNext,) = ticks.fillOrder(zeroForOne, tick.targetTick, amount);
-
             assertEq(SqrtPrice.unwrap(sqrtPriceNext), 0);
-
-            assertEq(ticks[tick.targetTick].totalOpenAmount, 0);
-            assertEq(ticks[tick.targetTick].lastOpenOrderIndex, 1);
-            assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 1);
+        } else {
+            assertEq(SqrtPrice.unwrap(sqrtPriceNext), type(uint160).max);
         }
     }
 
+    // TODO: ExactOut
     function test_fuzz_fillOrder_partOneTick(PlaceMockOrderParams calldata tick, bool zeroForOne) public {
         Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
         vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
@@ -263,16 +268,16 @@ contract OrderLevelTest is Test {
 
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
-
         placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
 
-        (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, -int128(uint128(tick.amount) - 1));
+        (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) - 1));
 
         assertEq(amountSpecified, 0);
         assertEq(ticks[tick.targetTick].totalOpenAmount, 1);
         assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 0);
     }
 
+    // TODO: ExactOut
     function test_fuzz_fillOrder_partTwoTick(PlaceMockOrderParams calldata tick, uint32 otherAmount, bool zeroForOne) public {
         Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
         vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
@@ -285,7 +290,7 @@ contract OrderLevelTest is Test {
         placeMockOrder(tick.targetTick, otherAmount, neighborTicks);
 
         assertEq(ticks[tick.targetTick].totalOpenAmount, uint128(tick.amount) + uint128(otherAmount));
-        (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, -int128(uint128(tick.amount) + 1));
+        (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) + 1));
 
         assertEq(amountSpecified, 0);
         assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 1);
