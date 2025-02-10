@@ -8,7 +8,6 @@ import {Token} from "../models/Token.sol";
 /// @title IConfigs
 interface IConfigs {
     /// @notice Initializes a pool's configs
-    /// @param poolId The pool id
     /// @param token0 The token0 address
     /// @param token1 The token1 address
     /// @param sqrtPrice The initial square root price
@@ -17,7 +16,7 @@ interface IConfigs {
     /// @return thresholdRatioLower The lower threshold ratio
     /// @return thresholdRatioUpper The upper threshold ratio
     /// @return minShares The minimum shares
-    function initialize(PoolId poolId, Token token0, Token token1, SqrtPrice sqrtPrice)
+    function initialize(Token token0, Token token1, SqrtPrice sqrtPrice)
         external
         returns (
             uint24 rangeRatioLower,

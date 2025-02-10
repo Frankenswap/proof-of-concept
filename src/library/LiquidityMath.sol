@@ -3,9 +3,12 @@ pragma solidity ^0.8.0;
 
 import {SqrtPrice} from "../models/SqrtPrice.sol";
 import {FullMath} from "./FullMath.sol";
+import {SafeCast} from "./SafeCast.sol";
 
 /// @title Liquidity math library
 library LiquidityMath {
+    using SafeCast for uint256;
+
     function getAmount0(SqrtPrice sqrtPriceLower, SqrtPrice sqrtPriceUpper, uint128 liquidity, bool roundUp)
         internal
         pure
@@ -40,8 +43,15 @@ library LiquidityMath {
         pure
         returns (uint128 liquidityUpper)
     {
-        // TODO: implement
-        // liquidityUpper = amount0 * (sqrtPrice * sqrtPriceUpper) / (sqrtPriceUpper - sqrtPrice)
+        liquidityUpper = FullMath.mulDivN(
+            amount0,
+            FullMath.mulDiv(
+                SqrtPrice.unwrap(sqrtPrice),
+                SqrtPrice.unwrap(sqrtPriceUpper),
+                SqrtPrice.unwrap(sqrtPriceUpper) - SqrtPrice.unwrap(sqrtPrice)
+            ),
+            96
+        ).toUint128();
     }
 
     function getLiquidityLower(SqrtPrice sqrtPrice, SqrtPrice sqrtPriceLower, uint256 amount1)
@@ -49,7 +59,7 @@ library LiquidityMath {
         pure
         returns (uint128 liquidityLower)
     {
-        // TODO: implement
-        // liquidityLower = amount1 / (sqrtPrice - sqrtPriceLower)
+        liquidityLower =
+            FullMath.mulNDiv(amount1, 96, SqrtPrice.unwrap(sqrtPrice) - SqrtPrice.unwrap(sqrtPriceLower)).toUint128();
     }
 }

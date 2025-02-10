@@ -54,17 +54,16 @@ library PoolLibrary {
         require(!self.isInitialized(), PoolAlreadyInitialized());
         require(SqrtPrice.unwrap(sqrtPrice) != 0, SqrtPriceCannotBeZero());
 
-        PoolId poolId = poolKey.toId();
         (
             uint24 rangeRatioLower,
             uint24 rangeRatioUpper,
             uint24 thresholdRatioLower,
             uint24 thresholdRatioUpper,
             uint32 minShares
-        ) = poolKey.configs.initialize(poolId, poolKey.token0, poolKey.token1, sqrtPrice);
+        ) = poolKey.configs.initialize(poolKey.token0, poolKey.token1, sqrtPrice);
         // TODO: validate returned values
 
-        shareToken = new ShareToken{salt: PoolId.unwrap(poolId)}();
+        shareToken = new ShareToken{salt: PoolId.unwrap(poolKey.toId())}();
 
         // TODO: hardcoding 1e6 for now
         SqrtPrice sqrtPriceLower =
@@ -74,8 +73,8 @@ library PoolLibrary {
 
         uint128 liquidityLower = LiquidityMath.getLiquidityLower(sqrtPrice, sqrtPriceLower, amount1Desired);
         uint128 liquidityUpper = LiquidityMath.getLiquidityUpper(sqrtPrice, sqrtPriceUpper, amount0Desired);
-
         shares = liquidityLower > liquidityUpper ? liquidityUpper : liquidityLower;
+
         uint256 amount0 = LiquidityMath.getAmount0(sqrtPrice, sqrtPriceUpper, shares + minShares, true);
         uint256 amount1 = LiquidityMath.getAmount1(sqrtPriceLower, sqrtPrice, shares + minShares, true);
         balanceDelta = toBalanceDelta(-amount0.uint256toInt128(), -amount1.uint256toInt128());
