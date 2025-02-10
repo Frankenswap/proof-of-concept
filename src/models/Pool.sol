@@ -75,8 +75,8 @@ library PoolLibrary {
         uint128 liquidityUpper = LiquidityMath.getLiquidityUpper(sqrtPrice, sqrtPriceUpper, amount0Desired);
         shares = liquidityLower > liquidityUpper ? liquidityUpper : liquidityLower;
 
-        uint256 amount0 = LiquidityMath.getAmount0(sqrtPrice, sqrtPriceUpper, shares + minShares, true);
-        uint256 amount1 = LiquidityMath.getAmount1(sqrtPriceLower, sqrtPrice, shares + minShares, true);
+        uint256 amount0 = LiquidityMath.getAmount0(sqrtPrice, sqrtPriceUpper, shares, true);
+        uint256 amount1 = LiquidityMath.getAmount1(sqrtPriceLower, sqrtPrice, shares, true);
         balanceDelta = toBalanceDelta(-amount0.uint256toInt128(), -amount1.uint256toInt128());
 
         self.reserve0 = amount0.toUint128();
@@ -92,7 +92,7 @@ library PoolLibrary {
         self.orderLevels.initialize();
 
         shareToken.mint(address(0), minShares);
-        shareToken.mint(msg.sender, shares);
+        shareToken.mint(msg.sender, shares - minShares);
     }
 
     function modifyReserves(Pool storage self, int128 sharesDelta) internal returns (BalanceDelta balanceDelta) {
