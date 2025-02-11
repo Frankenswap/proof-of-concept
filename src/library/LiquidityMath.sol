@@ -20,6 +20,7 @@ library LiquidityMath {
         if (roundUp) {
             amount0 = FullMath.mulDivUp(numerator1, numerator2, SqrtPrice.unwrap(sqrtPriceUpper));
 
+            // TODO: not checking for overflow, but should be impooosible in practice
             assembly ("memory-safe") {
                 amount0 := add(div(amount0, sqrtPriceLower), gt(mod(amount0, sqrtPriceLower), 0))
             }
