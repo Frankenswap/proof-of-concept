@@ -25,7 +25,8 @@ library LiquidityMath {
                 amount0 := add(div(amount0, sqrtPriceLower), gt(mod(amount0, sqrtPriceLower), 0))
             }
         } else {
-            FullMath.mulDiv(numerator1, numerator2, SqrtPrice.unwrap(sqrtPriceUpper)) / SqrtPrice.unwrap(sqrtPriceLower);
+            amount0 = FullMath.mulDiv(numerator1, numerator2, SqrtPrice.unwrap(sqrtPriceUpper))
+                / SqrtPrice.unwrap(sqrtPriceLower);
         }
     }
 
