@@ -104,8 +104,8 @@ library PoolLibrary {
             uint256 amount0 = FullMath.mulDivUp(self.reserve0, uint128(sharesDelta), totalShares);
             uint256 amount1 = FullMath.mulDivUp(self.reserve1, uint128(sharesDelta), totalShares);
 
-            self.reserve0 += uint128(amount0.uint256toInt128());
-            self.reserve1 += uint128(amount1.uint256toInt128());
+            self.reserve0 += amount0.toUint128();
+            self.reserve1 += amount1.toUint128();
             balanceDelta = toBalanceDelta(-amount0.uint256toInt128(), -amount1.uint256toInt128());
 
             self.shareToken.mint(msg.sender, uint128(sharesDelta));

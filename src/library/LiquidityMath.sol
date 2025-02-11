@@ -21,7 +21,7 @@ library LiquidityMath {
             amount0 = FullMath.mulDivUp(numerator1, numerator2, SqrtPrice.unwrap(sqrtPriceUpper));
 
             assembly ("memory-safe") {
-                amount0 := add(div(amount0, sqrtPriceLower), and(gt(mod(amount0, sqrtPriceLower), 0), roundUp))
+                amount0 := add(div(amount0, sqrtPriceLower), gt(mod(amount0, sqrtPriceLower), 0))
             }
         } else {
             FullMath.mulDiv(numerator1, numerator2, SqrtPrice.unwrap(sqrtPriceUpper)) / SqrtPrice.unwrap(sqrtPriceLower);
