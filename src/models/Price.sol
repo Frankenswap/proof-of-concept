@@ -23,19 +23,19 @@ library PriceLibrary {
     function getAmount0Delta(Price price, uint128 amount1) internal pure returns (int128 amount0) {
         // If amount1 is too small, it will have more error
         // If price is too big, it will have more error
-        amount0 = fullMulNDiv(amount1, 96, Price.unwrap(price)).uint256toInt128();
+        amount0 = FullMath.mulNDiv(amount1, 96, Price.unwrap(price)).uint256toInt128();
     }
 
     function getAmount0DeltaUp(Price price, uint128 amount1) internal pure returns (int128 amount0) {
-        amount0 = fullMulNDivUp(amount1, 96, Price.unwrap(price)).uint256toInt128();
+        amount0 = FullMath.mulNDivUp(amount1, 96, Price.unwrap(price)).uint256toInt128();
     }
 
     // token 1 = token 0 * price
     function getAmount1Delta(Price price, uint128 amount0) internal pure returns (int128 amount1) {
-        amount1 = fullMulDivN(Price.unwrap(price), amount0, 96).uint256toInt128();
+        amount1 = FullMath.mulDivN(Price.unwrap(price), amount0, 96).uint256toInt128();
     }
 
     function getAmount1DeltaUp(Price price, uint128 amount0) internal pure returns (int128 amount1) {
-        amount1 = fullMulDivNUp(Price.unwrap(price), amount0, 96).uint256toInt128();
+        amount1 = FullMath.mulDivNUp(Price.unwrap(price), amount0, 96).uint256toInt128();
     }
 }
