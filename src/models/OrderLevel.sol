@@ -252,7 +252,7 @@ library OrderLevelLibrary {
             uint128 amountRemaining = amountIn;
 
             level.totalOpenAmount -= amountIn;
-            for (uint64 i = cache.lastCloseOrderIndex; amountRemaining != 0; i++) {
+            for (uint64 i = cache.lastCloseOrderIndex + 1; amountRemaining != 0; i++) {
                 OrderId order = OrderIdLibrary.from(sqrtPrice, i);
 
                 // TODO: optimize
