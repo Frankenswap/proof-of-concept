@@ -210,13 +210,16 @@ library OrderLevelLibrary {
         //    false     |    true     | exactInAmount = amount
         //    false     |    false    | exactInAmount = getAmount1Delta(-amount)
         uint128 amountIn;
+        uint128 amountInUp;
         if (exactIn) {
             amountIn = uint128(amountSpecified);
         } else {
             if (zeroForOne) {
                 amountIn = uint128(price.getAmount0Delta(uint128(-amountSpecified)));
+                amountInUp = uint128(price.getAmount0DeltaUp(uint128(-amountSpecified)));
             } else {
                 amountIn = uint128(price.getAmount1Delta(uint128(-amountSpecified)));
+                amountInUp = uint128(price.getAmount1DeltaUp(uint128(-amountSpecified)));
             }
         }
 
@@ -235,7 +238,7 @@ library OrderLevelLibrary {
                 delta = toBalanceDelta(-cache.totalOpenAmount.toInt128(), token1Output);
 
                 amountSpecifiedRemaining = amountSpecified < 0
-                    ? amountSpecified + token1Output // exactOut, zeroForOne = true, amountSpecified = token 1
+                    ? amountSpecified + price.getAmount1DeltaUp(cache.totalOpenAmount) // exactOut, zeroForOne = true, amountSpecified = token 1
                     : (amountIn - cache.totalOpenAmount).toInt128(); // exactIn, zeroForOne = true, amountSpecified = token 0
             } else {
                 // zeroForOne = false, order totalOpenAmount is amount 1(exactOut)
@@ -244,14 +247,19 @@ library OrderLevelLibrary {
                 delta = toBalanceDelta(token0Output, -cache.totalOpenAmount.toInt128());
 
                 amountSpecifiedRemaining = amountSpecified < 0
-                    ? amountSpecified + token0Output // exactOut, zeroForOne = false, amountSpecified = token 0
+                    ? amountSpecified + price.getAmount0DeltaUp(cache.totalOpenAmount) // exactOut, zeroForOne = false, amountSpecified = token 0
                     : (amountIn - cache.totalOpenAmount).toInt128(); // exactIn, zeroForOne = false, amountSpecified = token 1
             }
         } else {
             mapping(OrderId => Order) storage orders = level.orders;
-            uint128 amountRemaining = amountIn;
 
-            level.totalOpenAmount -= amountIn;
+            // In exactOut mode, the tokens given by the user will be converted into another token to match the orders
+            // in LOB. At this time, due to math errors, the token conversion result may be round down, which will
+            // lead to match less orders, which is equivalent to the user filling fewer orders and obtaining more tokens.
+
+            uint128 amountRemaining = exactIn ? amountIn : amountInUp;
+
+            level.totalOpenAmount -= amountRemaining;
             for (uint64 i = cache.lastCloseOrderIndex + 1; amountRemaining != 0; i++) {
                 OrderId order = OrderIdLibrary.from(sqrtPrice, i);
 
@@ -277,12 +285,22 @@ library OrderLevelLibrary {
 
             if (zeroForOne) {
                 // zeroForOne = true, order totalOpenAmount is amount 0(exactOut)
-                int128 token1Output = price.getAmount1DeltaUp(amountIn);
-                delta = toBalanceDelta(-amountIn.toInt128(), token1Output);
+                if (exactIn) {
+                    int128 token1Output = price.getAmount1Delta(uint128(amountSpecified));
+                    delta = toBalanceDelta(-amountSpecified, token1Output);
+                } else {
+                    int128 token0Input = price.getAmount0DeltaUp(uint128(-amountSpecified));
+                    delta = toBalanceDelta(-token0Input, amountSpecified);
+                }
             } else {
                 // zeroForOne = false, order totalOpenAmount is amount 1(exactOut)
-                int128 token0Output = price.getAmount0DeltaUp(amountIn);
-                delta = toBalanceDelta(token0Output, -amountIn.toInt128());
+                if (exactIn) {
+                    int128 token0Output = price.getAmount0Delta(uint128(amountSpecified));
+                    delta = toBalanceDelta(token0Output, -amountSpecified);
+                } else {
+                    int128 token1Input = price.getAmount1DeltaUp(uint128(-amountSpecified));
+                    delta = toBalanceDelta(amountSpecified, -token1Input);
+                }
             }
 
             amountSpecifiedRemaining = 0;

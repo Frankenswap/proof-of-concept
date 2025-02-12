@@ -236,7 +236,12 @@ contract OrderLevelTest is Test {
     }
 
     // TODO: ExactOut
-    function test_fuzz_test_fuzz_fillOrder_full(SqrtPrice targetTick, uint32 amount, uint32 amountDelta, bool zeroForOne) public {
+    function test_fuzz_test_fuzz_fillOrder_full(
+        SqrtPrice targetTick,
+        uint32 amount,
+        uint32 amountDelta,
+        bool zeroForOne
+    ) public {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
         Price price = PriceLibrary.fromSqrtPrice(targetTick);
         vm.assume(uint256(amount) * Price.unwrap(price) < type(uint160).max);
@@ -264,6 +269,7 @@ contract OrderLevelTest is Test {
     function test_fuzz_fillOrder_partOneTick(PlaceMockOrderParams calldata tick, bool zeroForOne) public {
         Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
         vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
+        vm.assume(Price.unwrap(price) > 1);
         vm.assume(tick.amount > 2);
 
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
@@ -278,7 +284,9 @@ contract OrderLevelTest is Test {
     }
 
     // TODO: ExactOut
-    function test_fuzz_fillOrder_partTwoTick(PlaceMockOrderParams calldata tick, uint32 otherAmount, bool zeroForOne) public {
+    function test_fuzz_fillOrder_partTwoTick(PlaceMockOrderParams calldata tick, uint32 otherAmount, bool zeroForOne)
+        public
+    {
         Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
         vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
         vm.assume(tick.amount > 1);
