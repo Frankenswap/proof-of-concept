@@ -89,7 +89,10 @@ contract ShareToken is IShareToken {
         // over/underflow not possible
         unchecked {
             if (to == address(0)) {
-                _totalSupply -= amount;
+                // allow explicitly minting to address(0)
+                if (from != address(0)) {
+                    _totalSupply -= amount;
+                }
             } else {
                 _accounts[to].balance += amount;
             }

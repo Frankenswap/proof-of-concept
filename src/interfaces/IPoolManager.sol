@@ -13,42 +13,31 @@ import {Token} from "../models/Token.sol";
 /// @title IPoolManager
 interface IPoolManager {
     /// @notice Emitted when a new pool is initialized
-    /// @param poolId The pool id
     /// @param token0 The first token
     /// @param token1 The second token
     /// @param configs The pool configs
+    /// @param poolId The pool id
     /// @param shareToken The share token
     /// @param sqrtPrice The initial square root price
-    /// @param rangeRatioLower The lower range ratio
-    /// @param rangeRatioUpper The upper range ratio
-    /// @param thresholdRatioLower The lower threshold ratio
-    /// @param thresholdRatioUpper The upper threshold ratio
+    /// @param shares The initial shares
+    /// @param balanceDelta The balance delta required
     event Initialize(
-        PoolId indexed poolId,
         Token indexed token0,
         Token indexed token1,
-        IConfigs configs,
+        IConfigs indexed configs,
+        PoolId poolId,
         IShareToken shareToken,
         SqrtPrice sqrtPrice,
-        uint24 rangeRatioLower,
-        uint24 rangeRatioUpper,
-        uint24 thresholdRatioLower,
-        uint24 thresholdRatioUpper
+        uint128 shares,
+        BalanceDelta balanceDelta
     );
 
-    /// @notice Emitted when share is minted
+    /// @notice Emitted when the reserves of a pool are modified
     /// @param poolId The pool id
     /// @param sender The sender
-    /// @param balanceDelta The balance delta for the sender
-    /// @param shareDelta The share delta for the sender
-    event Mint(PoolId indexed poolId, address indexed sender, BalanceDelta balanceDelta, int128 shareDelta);
-
-    /// @notice Emitted when share is burned
-    /// @param poolId The pool id
-    /// @param sender The sender
-    /// @param balanceDelta The balance delta for the sender
-    /// @param shareDelta The share delta for the sender
-    event Burn(PoolId indexed poolId, address indexed sender, BalanceDelta balanceDelta, int128 shareDelta);
+    /// @param sharesDelta The shares delta
+    /// @param balanceDelta The balance delta required or received
+    event ModifyReserves(PoolId indexed poolId, address indexed sender, int128 sharesDelta, BalanceDelta balanceDelta);
 
     // TODO: PlaceOrder event
 
@@ -64,30 +53,23 @@ interface IPoolManager {
     /// @notice Initializes a new pool
     /// @param poolKey The pool key
     /// @param sqrtPrice The initial square root price
+    /// @param amount0Desired The desired initial amount of token0
+    /// @param amount1Desired The desired initial amount of token1
     /// @return poolId The pool id
     /// @return shareToken The share token
-    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice)
-        external
-        returns (PoolId poolId, IShareToken shareToken);
-
-    /// @notice Mints share
-    /// @param poolKey The pool key
-    /// @param amount0 The desired amount of token0 to provide
-    /// @param amount1 The desired amount of token1 to provide
+    /// @return shares The initial shares
     /// @return balanceDelta The balance delta required
-    /// @return shareDelta The share delta received
-    function mint(PoolKey calldata poolKey, uint128 amount0, uint128 amount1)
+    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice, uint128 amount0Desired, uint128 amount1Desired)
         external
-        returns (BalanceDelta balanceDelta, int128 shareDelta);
+        returns (PoolId poolId, IShareToken shareToken, uint128 shares, BalanceDelta balanceDelta);
 
-    /// @notice Burns share
+    /// @notice Modifies the reserves of a pool
     /// @param poolKey The pool key
-    /// @param share The amount of share to burn
-    /// @return balanceDelta The balance delta received
-    /// @return shareDelta The share delta required
-    function burn(PoolKey calldata poolKey, uint128 share)
+    /// @param sharesDelta The shares delta
+    /// @return balanceDelta The balance delta required or received
+    function modifyReserves(PoolKey calldata poolKey, int128 sharesDelta)
         external
-        returns (BalanceDelta balanceDelta, int128 shareDelta);
+        returns (BalanceDelta balanceDelta);
 
     // TODO: add price limit, to decide whether use uint32 or SqrtPrice
     // TODO: add neighbor ticks/SqrtPrices that are already in the linked map, to decide whether use uint32 or SqrtPrice
