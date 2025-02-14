@@ -238,7 +238,7 @@ library OrderLevelLibrary {
                 delta = toBalanceDelta(-cache.totalOpenAmount.toInt128(), token1Output);
 
                 amountSpecifiedRemaining = amountSpecified < 0
-                    ? amountSpecified + price.getAmount1DeltaUp(cache.totalOpenAmount) // exactOut, zeroForOne = true, amountSpecified = token 1
+                    ? amountSpecified + token1Output // exactOut, zeroForOne = true, amountSpecified = token 1
                     : (amountIn - cache.totalOpenAmount).toInt128(); // exactIn, zeroForOne = true, amountSpecified = token 0
             } else {
                 // zeroForOne = false, order totalOpenAmount is amount 1(exactOut)
@@ -247,7 +247,7 @@ library OrderLevelLibrary {
                 delta = toBalanceDelta(token0Output, -cache.totalOpenAmount.toInt128());
 
                 amountSpecifiedRemaining = amountSpecified < 0
-                    ? amountSpecified + price.getAmount0DeltaUp(cache.totalOpenAmount) // exactOut, zeroForOne = false, amountSpecified = token 0
+                    ? amountSpecified + token0Output // exactOut, zeroForOne = false, amountSpecified = token 0
                     : (amountIn - cache.totalOpenAmount).toInt128(); // exactIn, zeroForOne = false, amountSpecified = token 1
             }
         } else {
