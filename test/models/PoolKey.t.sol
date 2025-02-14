@@ -24,6 +24,7 @@ contract PoolKeyTest is Test {
         assertTrue(true);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_fuzz_token0EqualsOrGreaterThanToken1(Token token0, Token token1, IConfigs configs) public {
         vm.assume(Token.unwrap(token0) >= Token.unwrap(token1));
         vm.assume(address(configs) != address(0));
@@ -34,6 +35,7 @@ contract PoolKeyTest is Test {
         poolKey.validate();
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_fuzz_configsNotSet(Token token0, Token token1) public {
         vm.assume(Token.unwrap(token0) < Token.unwrap(token1));
 

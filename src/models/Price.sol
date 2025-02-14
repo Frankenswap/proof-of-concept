@@ -20,22 +20,22 @@ library PriceLibrary {
 
     // price = y / x = token 1 / token 0
     // token 0 = token 1 / price
-    function getAmount0Delta(Price price, uint128 amount0) internal pure returns (int128 amount1) {
-        // If amount0 is too small, it will have more error
+    function getAmount0Delta(Price price, uint128 amount1) internal pure returns (int128 amount0) {
+        // If amount1 is too small, it will have more error
         // If price is too big, it will have more error
-        amount1 = FullMath.mulNDiv(amount0, 96, Price.unwrap(price)).uint256toInt128();
+        amount0 = FullMath.mulNDiv(amount1, 96, Price.unwrap(price)).uint256toInt128();
     }
 
-    function getAmount0DeltaUp(Price price, uint128 amount0) internal pure returns (int128 amount1) {
-        amount1 = FullMath.mulNDivUp(amount0, 96, Price.unwrap(price)).uint256toInt128();
+    function getAmount0DeltaUp(Price price, uint128 amount1) internal pure returns (int128 amount0) {
+        amount0 = FullMath.mulNDivUp(amount1, 96, Price.unwrap(price)).uint256toInt128();
     }
 
     // token 1 = token 0 * price
-    function getAmount1Delta(Price price, uint128 amount1) internal pure returns (int128 amount0) {
-        amount0 = FullMath.mulDivN(Price.unwrap(price), amount1, 96).uint256toInt128();
+    function getAmount1Delta(Price price, uint128 amount0) internal pure returns (int128 amount1) {
+        amount1 = FullMath.mulDivN(Price.unwrap(price), amount0, 96).uint256toInt128();
     }
 
-    function getAmount1DeltaUp(Price price, uint128 amount1) internal pure returns (int128 amount0) {
-        amount0 = FullMath.mulDivNUp(Price.unwrap(price), amount1, 96).uint256toInt128();
+    function getAmount1DeltaUp(Price price, uint128 amount0) internal pure returns (int128 amount1) {
+        amount1 = FullMath.mulDivNUp(Price.unwrap(price), amount0, 96).uint256toInt128();
     }
 }

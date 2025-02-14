@@ -4,8 +4,9 @@ pragma solidity =0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {OrderLevel, OrderLevelLibrary} from "../../src/models/OrderLevel.sol";
 import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
+import {Price, PriceLibrary} from "../../src/models/Price.sol";
 import {Order} from "../../src/models/Order.sol";
-import {OrderId} from "../../src/models/OrderId.sol";
+import {OrderId, OrderIdLibrary} from "../../src/models/OrderId.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/models/BalanceDelta.sol";
 
 contract OrderLevelTest is Test {
@@ -83,6 +84,7 @@ contract OrderLevelTest is Test {
         assertEq(SqrtPrice.unwrap(prevTick), 0);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_initialize_AlreadyInitialized() public {
         ticks[SqrtPrice.wrap(0)].next = SqrtPrice.wrap(100);
         vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
@@ -90,8 +92,10 @@ contract OrderLevelTest is Test {
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(0)].next), 100);
 
         ticks[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(100);
-        ticks.initialize();
+
         vm.expectRevert(OrderLevelLibrary.OrderLevelAlreadyInitialized.selector);
+        ticks.initialize();
+
         assertEq(SqrtPrice.unwrap(ticks[SqrtPrice.wrap(type(uint160).max)].next), 100);
     }
 
@@ -229,5 +233,80 @@ contract OrderLevelTest is Test {
         placeMockOrder(tick3.targetTick, tick3.amount, neighborTicks);
 
         verfiyLink(4, 3, uint256(tick1.amount) + tick2.amount + tick3.amount);
+    }
+
+    // TODO: ExactOut
+    function test_fuzz_test_fuzz_fillOrder_full(
+        SqrtPrice targetTick,
+        uint32 amount,
+        uint32 amountDelta,
+        bool zeroForOne
+    ) public {
+        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+        Price price = PriceLibrary.fromSqrtPrice(targetTick);
+        vm.assume(uint256(amount) * Price.unwrap(price) < type(uint160).max);
+
+        int128 fillAmount = int128(uint128(amount) + uint128(amountDelta));
+
+        placeMockOrder(targetTick, amount, neighborTicks);
+
+        (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext,) =
+            ticks.fillOrder(zeroForOne, targetTick, fillAmount);
+
+        assertEq(uint128(amountSpecifiedRemaining), uint128(amountDelta));
+        assertEq(ticks[targetTick].totalOpenAmount, 0);
+        assertEq(ticks[targetTick].lastOpenOrderIndex, 1);
+        assertEq(ticks[targetTick].lastCloseOrderIndex, 1);
+
+        if (zeroForOne) {
+            assertEq(SqrtPrice.unwrap(sqrtPriceNext), 0);
+        } else {
+            assertEq(SqrtPrice.unwrap(sqrtPriceNext), type(uint160).max);
+        }
+    }
+
+    // TODO: ExactOut
+    function test_fuzz_fillOrder_partOneTick(PlaceMockOrderParams calldata tick, bool zeroForOne) public {
+        Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
+        vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
+        vm.assume(Price.unwrap(price) > 1);
+        vm.assume(tick.amount > 2);
+
+        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+
+        placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
+
+        (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) - 1));
+
+        assertEq(amountSpecified, 0);
+        assertEq(ticks[tick.targetTick].totalOpenAmount, 1);
+        assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 0);
+    }
+
+    // TODO: ExactOut
+    function test_fuzz_fillOrder_partTwoTick(PlaceMockOrderParams calldata tick, uint32 otherAmount, bool zeroForOne)
+        public
+    {
+        Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
+        vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
+        vm.assume(tick.amount > 1);
+        vm.assume(otherAmount > 1);
+
+        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+
+        placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
+        placeMockOrder(tick.targetTick, otherAmount, neighborTicks);
+
+        assertEq(ticks[tick.targetTick].totalOpenAmount, uint128(tick.amount) + uint128(otherAmount));
+        (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) + 1));
+
+        assertEq(amountSpecified, 0);
+        assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 1);
+        assertEq(ticks[tick.targetTick].totalOpenAmount, uint128(otherAmount) - 1);
+
+        OrderId orderId = OrderIdLibrary.from(tick.targetTick, 1);
+        OrderId otherOrderId = OrderIdLibrary.from(tick.targetTick, 2);
+        assertEq(ticks[tick.targetTick].orders[orderId].amountFilled, 0);
+        assertEq(ticks[tick.targetTick].orders[otherOrderId].amountFilled, 1);
     }
 }
