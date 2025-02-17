@@ -24,12 +24,10 @@ function lessThan(SqrtPrice sqrtPrice, SqrtPrice other) pure returns (bool) {
 
 library SqrtPriceLibrary {
     error InvalidTick(int32 tick);
-
-    int32 internal constant MIN_TICK = -110903604;
-    int32 internal constant MAX_TICK = 110903603;
-    // c0 = 0.0000014 * 2^96
-    // 2^0.0000014 = 1.00000097
-    int256 internal constant c0 = 0x177cf44765195f0000000000000000000000000000000;
+    
+    // log_1.000001 2^128
+    int32 internal constant MIN_TICK = -88722883;
+    int32 internal constant MAX_TICK = 88722883;
 
     function fromTick(int32 tick) internal pure returns (SqrtPrice sqrtPrice) {
         unchecked {
