@@ -5,7 +5,7 @@ import {SqrtPrice} from "./SqrtPrice.sol";
 import {FullMath} from "../library/FullMath.sol";
 import {SafeCast} from "../library/SafeCast.sol";
 
-/// @dev Represented as Q96.96 fixed point number
+/// @dev Represented as Q160.96 fixed point number
 type Price is uint256;
 
 using PriceLibrary for Price global;
