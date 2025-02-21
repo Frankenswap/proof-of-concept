@@ -6,6 +6,7 @@ import {OrderLevel, OrderLevelLibrary} from "../../src/models/OrderLevel.sol";
 import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
 import {Price, PriceLibrary} from "../../src/models/Price.sol";
 import {Order} from "../../src/models/Order.sol";
+import {PoolLibrary} from "../../src/models/Pool.sol";
 import {OrderId, OrderIdLibrary} from "../../src/models/OrderId.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/models/BalanceDelta.sol";
 
@@ -23,10 +24,10 @@ contract OrderLevelTest is Test {
         internal
         returns (OrderId orderId)
     {
-        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
+        PoolLibrary.PlaceOrderParams memory params = PoolLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
-            amount: amount,
+            amountSpecified: int128(amount),
             targetTick: targetTick,
             currentTick: SqrtPrice.wrap(0),
             neighborTicks: neighborTicks
@@ -138,10 +139,10 @@ contract OrderLevelTest is Test {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
         // Remove zeroForOne = true
-        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
+        PoolLibrary.PlaceOrderParams memory params = PoolLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
-            amount: 10 ether,
+            amountSpecified: 10 ether,
             targetTick: SqrtPrice.wrap(100),
             currentTick: SqrtPrice.wrap(0),
             neighborTicks: neighborTicks
@@ -184,10 +185,10 @@ contract OrderLevelTest is Test {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
         SqrtPrice targetTick = SqrtPrice.wrap(2 << 96);
         // Remove zeroForOne = true
-        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
+        PoolLibrary.PlaceOrderParams memory params = PoolLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
-            amount: 10 ether,
+            amountSpecified: 10 ether,
             targetTick: targetTick,
             currentTick: SqrtPrice.wrap(0),
             neighborTicks: neighborTicks

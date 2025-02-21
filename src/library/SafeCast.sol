@@ -25,4 +25,12 @@ library SafeCast {
         if (x >= 1 << 127) revert SafeCastOverflow();
         return int128(int256(x));
     }
+
+    function abs(int128 x) internal pure returns (uint128 y) {
+        assembly ("memory-safe") {
+            x := signextend(15, x)
+            let mask := sar(255, x)
+            y := xor(mask, add(mask, x))
+        }
+    }
 }

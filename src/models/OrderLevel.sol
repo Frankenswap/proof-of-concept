@@ -7,6 +7,7 @@ import {SqrtPrice} from "./SqrtPrice.sol";
 import {Price, PriceLibrary} from "./Price.sol";
 import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
 import {SafeCast} from "../library/SafeCast.sol";
+import {PoolLibrary} from "./Pool.sol";
 
 struct OrderLevel {
     SqrtPrice prev;
@@ -22,6 +23,7 @@ using OrderLevelLibrary for OrderLevel global;
 /// @title OrderLevelLibrary
 library OrderLevelLibrary {
     using SafeCast for uint128;
+    using SafeCast for int128;
 
     error OrderLevelAlreadyInitialized();
 
@@ -33,16 +35,7 @@ library OrderLevelLibrary {
         self[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(type(uint160).max);
     }
 
-    struct PlaceOrderParams {
-        address maker;
-        bool zeroForOne;
-        uint128 amount;
-        SqrtPrice targetTick;
-        SqrtPrice currentTick;
-        SqrtPrice[] neighborTicks;
-    }
-
-    function placeOrder(mapping(SqrtPrice => OrderLevel) storage self, PlaceOrderParams memory params)
+    function placeOrder(mapping(SqrtPrice => OrderLevel) storage self, PoolLibrary.PlaceOrderParams memory params)
         internal
         returns (OrderId orderId)
     {
@@ -125,11 +118,12 @@ library OrderLevelLibrary {
             }
         }
 
+        uint128 orderAmount = params.amountSpecified.abs();
         self[targetTick].lastOpenOrderIndex += 1;
-        self[targetTick].totalOpenAmount += params.amount;
+        self[targetTick].totalOpenAmount += orderAmount;
 
         orderId = OrderIdLibrary.from(params.targetTick, self[targetTick].lastOpenOrderIndex);
-        self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, params.amount);
+        self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, orderAmount);
     }
 
     function removeOrder(mapping(SqrtPrice => OrderLevel) storage self, OrderId orderId)

@@ -10,6 +10,7 @@ import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
 import {PoolId} from "./PoolId.sol";
 import {PoolKey} from "./PoolKey.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
+import {OrderId} from "./OrderId.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 
 struct Pool {
@@ -122,6 +123,22 @@ library PoolLibrary {
     }
 
     // TODO: all other functions needs to check that pool is initialized
+
+    struct PlaceOrderParams {
+        address maker;
+        bool zeroForOne;
+        int128 amountSpecified;
+        SqrtPrice targetTick;
+        SqrtPrice currentTick;
+        SqrtPrice[] neighborTicks;
+    }
+
+    function placeOrder(
+        Pool storage self,
+        bool partiallyFillable,
+        bool goodTillCancelled,
+        PlaceOrderParams memory params
+    ) internal returns (OrderId orderId, BalanceDelta balanceDelta) {}
 
     function isInitialized(Pool storage self) internal view returns (bool) {
         return SqrtPrice.unwrap(self.sqrtPrice) != 0 && address(self.shareToken) != address(0);
