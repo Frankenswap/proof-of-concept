@@ -93,4 +93,14 @@ library SqrtPriceMath {
             ? getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountOut, false) // p_a
             : getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountOut, false); // p_b
     }
+
+    function getNextSqrtPriceFromOutput(SqrtPrice sqrtPrice, uint128 liquidity, uint256 amountOut, bool zeroForOne)
+        internal
+        pure
+        returns (SqrtPrice)
+    {
+        return zeroForOne
+            ? getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountOut, false)
+            : getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountOut, false);
+    }
 }
