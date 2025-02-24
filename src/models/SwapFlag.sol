@@ -24,16 +24,18 @@ library SwapFlagLibrary {
         // rebalance => min price = threshold price
         // add order => min price = target price
         uint8 rawFlag = 0;
-        if (minPrice == bestPrice) {
-            rawFlag += 1;
-        }
+        unchecked {
+            if (minPrice == bestPrice) {
+                rawFlag += 1;
+            }
 
-        if (minPrice == targetPrice) {
-            rawFlag += 2;
-        }
+            if (minPrice == targetPrice) {
+                rawFlag += 2;
+            }
 
-        if (minPrice == thresholdRatioPrice) {
-            rawFlag += 4;
+            if (minPrice == thresholdRatioPrice) {
+                rawFlag += 4;
+            }
         }
 
         flag = SwapFlag.wrap(rawFlag);
