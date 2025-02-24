@@ -12,6 +12,7 @@ import {PoolKey} from "./PoolKey.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
 import {OrderId} from "./OrderId.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
+import {SwapFlag, SwapFlagLibrary} from "./SwapFlag.sol";
 
 struct Pool {
     uint128 reserve0;
@@ -33,6 +34,8 @@ using PoolLibrary for Pool global;
 
 /// @title PoolLibrary
 library PoolLibrary {
+    using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
+
     /// @notice Thrown when the pool is already initialized
     error PoolAlreadyInitialized();
 
@@ -124,6 +127,13 @@ library PoolLibrary {
 
     // TODO: all other functions needs to check that pool is initialized
 
+    struct StepComputations {
+        SqrtPrice sqrtPrice;
+        uint128 liquidity;
+        uint256 amountIn;
+        uint256 amountOut;
+    }
+
     struct PlaceOrderParams {
         address maker;
         bool zeroForOne;
@@ -133,12 +143,54 @@ library PoolLibrary {
         SqrtPrice[] neighborTicks;
     }
 
+    // TODO: Fee
     function placeOrder(
         Pool storage self,
         bool partiallyFillable,
         bool goodTillCancelled,
         PlaceOrderParams memory params
-    ) internal returns (OrderId orderId, BalanceDelta balanceDelta) {}
+    ) internal returns (OrderId orderId, BalanceDelta balanceDelta) {
+        StepComputations memory step;
+        step.sqrtPrice = self.sqrtPrice;
+        int256 amountSpecifiedRemaining = params.amountSpecified;
+
+        // zeroForOne -> Price Down -> targetTick / bestBid / thresholdRatioLower
+        if (params.zeroForOne) {
+            if (step.sqrtPrice < params.targetTick) {
+                orderId = self.orderLevels.placeOrder(params);
+            } else {
+                // TODO: ThresholdRatio calculate
+                SqrtPrice thresholdRatioLowerSqrtPrice = SqrtPrice.wrap(
+                    FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.thresholdRatioLower, 1e6).toUint160()
+                );
+
+                // next price and flag
+                SqrtPrice bestPrice = self.bestBid;
+                (SqrtPrice targetPrice, SwapFlag flag) =
+                    SwapFlagLibrary.toFlag(bestPrice, params.targetTick, thresholdRatioLowerSqrtPrice);
+
+                // Liquidity
+                SqrtPrice sqrtPriceUpper = SqrtPrice.wrap(
+                    FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.rangeRatioUpper, 1e6).toUint160()
+                );
+                step.liquidity = LiquidityMath.getLiquidityUpper(step.sqrtPrice, sqrtPriceUpper, self.reserve0);
+
+                // Compute Swap
+                (step.sqrtPrice, step.amountIn, step.amountOut) =
+                    LiquidityMath.computeSwap(step.sqrtPrice, targetPrice, step.liquidity, amountSpecifiedRemaining);
+
+                if (params.amountSpecified > 0) {
+                    unchecked {
+                        amountSpecifiedRemaining -= step.amountOut.toInt256();
+                    }
+                } else {
+                    unchecked {
+                        amountSpecifiedRemaining += step.amountIn.toInt256();
+                    }
+                }
+            }
+        } else {}
+    }
 
     function isInitialized(Pool storage self) internal view returns (bool) {
         return SqrtPrice.unwrap(self.sqrtPrice) != 0 && address(self.shareToken) != address(0);
