@@ -64,4 +64,46 @@ library LiquidityMath {
         liquidityLower =
             FullMath.mulNDiv(amount1, 96, SqrtPrice.unwrap(sqrtPrice) - SqrtPrice.unwrap(sqrtPriceLower)).toUint128();
     }
+
+    function computeSwap(SqrtPrice sqrtPrice, SqrtPrice targetPrice, uint128 liquidity, int256 amountRemaining)
+        internal
+        pure
+        returns (SqrtPrice nextPrice, uint256 amountIn, uint256 amountOut)
+    {
+        unchecked {
+            bool zeroForOne = sqrtPrice >= targetPrice;
+            bool exactIn = amountRemaining < 0;
+
+            if (exactIn) {
+                uint256 absAmountRemaining = uint256(-amountRemaining);
+                amountIn = zeroForOne
+                    ? getAmount0(targetPrice, sqrtPrice, liquidity, true)
+                    : getAmount1(sqrtPrice, targetPrice, liquidity, true);
+                
+                if (absAmountRemaining >= amountIn) {
+                    nextPrice = targetPrice;
+                } else {
+                    amountIn = absAmountRemaining;
+                    // TODO: nextPrice
+                }
+                amountOut = zeroForOne
+                    ? getAmount1(nextPrice, sqrtPrice, liquidity, false)
+                    : getAmount0(sqrtPrice, nextPrice, liquidity, false);
+            } else {
+                amountOut = zeroForOne
+                    ? getAmount1(targetPrice, sqrtPrice, liquidity, false)
+                    : getAmount0(sqrtPrice, targetPrice, liquidity, false);
+
+                if (uint256(amountRemaining) >= amountOut) {
+                    nextPrice = targetPrice;
+                } else {
+                    amountOut = uint256(amountRemaining);
+                    // TODO: nextPrice
+                }
+                amountIn = zeroForOne
+                    ? getAmount0(nextPrice, sqrtPrice, liquidity, true)
+                    : getAmount1(sqrtPrice, nextPrice, liquidity, true);
+            }
+        }
+    }
 }
