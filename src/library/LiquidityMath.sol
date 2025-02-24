@@ -85,7 +85,7 @@ library LiquidityMath {
                     nextPrice = targetPrice;
                 } else {
                     amountIn = absAmountRemaining;
-                    nextPrice = SqrtPriceMath.getNextSqrtPriceFromInput(SqrtPrice, liquidity, amountIn, zeroForOne);
+                    nextPrice = SqrtPriceMath.getNextSqrtPriceFromInput(sqrtPrice, liquidity, amountIn, zeroForOne);
                 }
                 amountOut = zeroForOne
                     ? getAmount1(nextPrice, sqrtPrice, liquidity, false)
@@ -99,7 +99,7 @@ library LiquidityMath {
                     nextPrice = targetPrice;
                 } else {
                     amountOut = uint256(amountRemaining);
-                    // TODO: nextPrice
+                    nextPrice = SqrtPriceMath.getNextSqrtPriceFromOutput(sqrtPrice, liquidity, amountOut, zeroForOne);
                 }
                 amountIn = zeroForOne
                     ? getAmount0(nextPrice, sqrtPrice, liquidity, true)
