@@ -16,6 +16,7 @@ contract OrderLevelTest is Test {
     mapping(SqrtPrice => OrderLevel) public ticks;
     mapping(OrderId => Order) public orders;
 
+    // TODO: Exact In and zeroForOne test
     function setUp() public {
         ticks.initialize();
     }

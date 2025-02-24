@@ -117,8 +117,22 @@ library OrderLevelLibrary {
                 self[targetTick].prev = prevTick;
             }
         }
+        // zero for one | exact input |
+        //    true      |    true     | orderAmount = getAmount1Delta(-amount)
+        //    true      |    false    | orderAmount = -amount
+        //    false     |    true     | orderAmount = getAmount0Delta(amount)
+        //    false     |    false    | orderAmount = amount
+        uint128 orderAmount = params.amountSpecified.abs(); // exactOut
+        if (params.amountSpecified < 0) {
+            // exactIn
+            Price price = PriceLibrary.fromSqrtPrice(params.targetTick);
+            if (params.zeroForOne) {
+                orderAmount = uint128(price.getAmount1Delta(orderAmount));
+            } else {
+                orderAmount = uint128(price.getAmount0Delta(orderAmount));
+            }
+        }
 
-        uint128 orderAmount = params.amountSpecified.abs();
         self[targetTick].lastOpenOrderIndex += 1;
         self[targetTick].totalOpenAmount += orderAmount;
 
@@ -126,6 +140,7 @@ library OrderLevelLibrary {
         self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, orderAmount);
     }
 
+    // TODO: balanceDelta
     function removeOrder(mapping(SqrtPrice => OrderLevel) storage self, OrderId orderId)
         internal
         returns (address orderMaker, BalanceDelta delta)
