@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {SqrtPrice} from "../models/SqrtPrice.sol";
+import {SqrtPriceMath} from "./SqrtPriceMath.sol";
 import {FullMath} from "./FullMath.sol";
 import {SafeCast} from "./SafeCast.sol";
 
@@ -79,12 +80,12 @@ library LiquidityMath {
                 amountIn = zeroForOne
                     ? getAmount0(targetPrice, sqrtPrice, liquidity, true)
                     : getAmount1(sqrtPrice, targetPrice, liquidity, true);
-                
+
                 if (absAmountRemaining >= amountIn) {
                     nextPrice = targetPrice;
                 } else {
                     amountIn = absAmountRemaining;
-                    // TODO: nextPrice
+                    nextPrice = SqrtPriceMath.getNextSqrtPriceFromInput(SqrtPrice, liquidity, amountIn, zeroForOne);
                 }
                 amountOut = zeroForOne
                     ? getAmount1(nextPrice, sqrtPrice, liquidity, false)
