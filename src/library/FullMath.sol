@@ -212,4 +212,14 @@ library FullMath {
             }
         }
     }
+
+    function min(uint160 a, uint160 b, uint160 c) internal pure returns (uint160 z) {
+        // TODO: Optimize (ternary)
+        assembly {
+            switch lt(a, b)
+            case true { z := a }
+            default { z := b }
+            if lt(c, z) { z := c }
+        }
+    }
 }
