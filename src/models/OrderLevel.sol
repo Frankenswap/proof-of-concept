@@ -35,6 +35,7 @@ library OrderLevelLibrary {
         self[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(type(uint160).max);
     }
 
+    // Balance Delta in place order
     function placeOrder(mapping(SqrtPrice => OrderLevel) storage self, PoolLibrary.PlaceOrderParams memory params)
         internal
         returns (OrderId orderId)
