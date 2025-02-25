@@ -35,10 +35,9 @@ library OrderLevelLibrary {
         self[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(type(uint160).max);
     }
 
-    // Balance Delta in place order
     function placeOrder(mapping(SqrtPrice => OrderLevel) storage self, PoolLibrary.PlaceOrderParams memory params)
         internal
-        returns (OrderId orderId)
+        returns (OrderId orderId, BalanceDelta delta)
     {
         SqrtPrice neighborTick;
         SqrtPrice neighborPrev;
@@ -123,14 +122,28 @@ library OrderLevelLibrary {
         //    true      |    false    | orderAmount = -amount
         //    false     |    true     | orderAmount = getAmount0Delta(amount)
         //    false     |    false    | orderAmount = amount
-        uint128 orderAmount = params.amountSpecified.abs(); // exactOut
+        Price price = PriceLibrary.fromSqrtPrice(params.targetTick);
+        uint128 orderAmount;
+
         if (params.amountSpecified < 0) {
             // exactIn
-            Price price = PriceLibrary.fromSqrtPrice(params.targetTick);
+            uint128 amountSpecifiedAbs = uint128(-params.amountSpecified);
             if (params.zeroForOne) {
-                orderAmount = uint128(price.getAmount1Delta(orderAmount));
+                orderAmount = uint128(price.getAmount1Delta(amountSpecifiedAbs));
+                delta = toBalanceDelta(params.amountSpecified, 0);
             } else {
-                orderAmount = uint128(price.getAmount0Delta(orderAmount));
+                orderAmount = uint128(price.getAmount0Delta(amountSpecifiedAbs));
+                delta = toBalanceDelta(0, params.amountSpecified);
+            }
+        } else {
+            // exactOut
+            orderAmount = uint128(params.amountSpecified);
+            if (params.zeroForOne) {
+                int128 amountIn = price.getAmount0DeltaUp(orderAmount);
+                delta = toBalanceDelta(-amountIn, 0);
+            } else {
+                int128 amountIn = price.getAmount1DeltaUp(orderAmount);
+                delta = toBalanceDelta(0, -amountIn);
             }
         }
 

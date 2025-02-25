@@ -157,7 +157,7 @@ library PoolLibrary {
         // zeroForOne -> Price Down -> targetTick / bestBid / thresholdRatioLower
         if (params.zeroForOne) {
             if (step.sqrtPrice < params.targetTick) {
-                orderId = self.orderLevels.placeOrder(params);
+                (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
             } else {
                 // TODO: ThresholdRatio calculate
                 SqrtPrice thresholdRatioLowerSqrtPrice = SqrtPrice.wrap(
