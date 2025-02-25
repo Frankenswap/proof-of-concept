@@ -164,6 +164,8 @@ library PoolLibrary {
                     FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.thresholdRatioLower, 1e6).toUint160()
                 );
 
+                // TODO: While loop to swap
+
                 // next price and flag
                 SqrtPrice bestPrice = self.bestBid;
                 (SqrtPrice targetPrice, SwapFlag flag) =
@@ -188,6 +190,10 @@ library PoolLibrary {
                         amountSpecifiedRemaining += step.amountIn.toInt256();
                     }
                 }
+                // TODO: If FilOrderFlag, fill order in orderLevel
+                // TODO: If fill all order in orderLevel, update best bid
+                // TODO: If RebalanceFlag, rebalance
+                // TODO: If AddOrderFlag, add order
             }
         } else {}
     }
