@@ -132,6 +132,8 @@ library PoolLibrary {
         uint128 liquidity;
         uint256 amountIn;
         uint256 amountOut;
+        uint128 reserve0;
+        uint128 reserve1;
     }
 
     struct PlaceOrderParams {
@@ -151,7 +153,11 @@ library PoolLibrary {
         PlaceOrderParams memory params
     ) internal returns (OrderId orderId, BalanceDelta balanceDelta) {
         StepComputations memory step;
+
         step.sqrtPrice = self.sqrtPrice;
+        step.reserve0 = self.reserve0;
+        step.reserve1 = self.reserve1;
+
         int256 amountSpecifiedRemaining = params.amountSpecified;
 
         // zeroForOne -> Price Down -> targetTick / bestBid / thresholdRatioLower
@@ -181,14 +187,15 @@ library PoolLibrary {
                 (step.sqrtPrice, step.amountIn, step.amountOut) =
                     LiquidityMath.computeSwap(step.sqrtPrice, targetPrice, step.liquidity, amountSpecifiedRemaining);
 
-                if (params.amountSpecified > 0) {
-                    unchecked {
+                unchecked {
+                    if (params.amountSpecified > 0) {
                         amountSpecifiedRemaining -= step.amountOut.toInt256();
-                    }
-                } else {
-                    unchecked {
+                    } else {
                         amountSpecifiedRemaining += step.amountIn.toInt256();
                     }
+
+                    step.reserve0 += step.amountIn.toUint128();
+                    step.reserve1 -= step.amountOut.toUint128();
                 }
                 // TODO: If FilOrderFlag, fill order in orderLevel
                 // TODO: If fill all order in orderLevel, update best bid
