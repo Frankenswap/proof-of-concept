@@ -87,4 +87,11 @@ contract FullMathTest is Test {
         assertLe(minValue, y);
         assertLe(minValue, z);
     }
+
+    function test_fuzz_max(uint160 x, uint160 y, uint160 z) public pure {
+        uint160 maxValue = FullMath.max(x, y, z);
+        assertGe(maxValue, x);
+        assertGe(maxValue, y);
+        assertGe(maxValue, z);
+    }
 }

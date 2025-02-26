@@ -21,7 +21,7 @@ struct Pool {
     SqrtPrice sqrtPrice;
     uint24 rangeRatioLower;
     uint24 rangeRatioUpper;
-    uint24 thresholdRatioLower;
+    uint24 thresholdRatioLower; // TODO: SqrtPrice
     uint24 thresholdRatioUpper;
     SqrtPrice bestAsk;
     SqrtPrice bestBid;
@@ -136,6 +136,8 @@ library PoolLibrary {
         uint128 reserve1;
     }
 
+    // liquidity + rebalance price + last sqrt price
+
     struct PlaceOrderParams {
         address maker;
         bool zeroForOne;
@@ -174,8 +176,9 @@ library PoolLibrary {
 
                 // next price and flag
                 SqrtPrice bestPrice = self.bestBid;
-                (SqrtPrice targetPrice, SwapFlag flag) =
-                    SwapFlagLibrary.toFlag(bestPrice, params.targetTick, thresholdRatioLowerSqrtPrice);
+                (SqrtPrice targetPrice, SwapFlag flag) = SwapFlagLibrary.toFlag(
+                    bestPrice, params.targetTick, thresholdRatioLowerSqrtPrice, params.zeroForOne
+                );
 
                 // Liquidity
                 SqrtPrice sqrtPriceUpper = SqrtPrice.wrap(

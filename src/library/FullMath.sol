@@ -222,4 +222,14 @@ library FullMath {
             if lt(c, z) { z := c }
         }
     }
+
+    function max(uint160 a, uint160 b, uint160 c) internal pure returns (uint160 z) {
+        // TODO: Optimize (ternary)
+        assembly {
+            switch gt(a, b)
+            case true { z := a }
+            default { z := b }
+            if gt(c, z) { z := c }
+        }
+    }
 }

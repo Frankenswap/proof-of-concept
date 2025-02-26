@@ -9,31 +9,40 @@ type SwapFlag is uint8;
 using SwapFlagLibrary for SwapFlag global;
 
 library SwapFlagLibrary {
-    function toFlag(SqrtPrice bestPrice, SqrtPrice targetPrice, SqrtPrice thresholdRatioPrice)
+    // TODO: zeroForOne
+    function toFlag(SqrtPrice bestPrice, SqrtPrice targetPrice, SqrtPrice thresholdRatioPrice, bool zeroForOne)
         internal
         pure
-        returns (SqrtPrice minPrice, SwapFlag flag)
+        returns (SqrtPrice nextPrice, SwapFlag flag)
     {
-        minPrice = SqrtPrice.wrap(
-            FullMath.min(
-                SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice), SqrtPrice.unwrap(thresholdRatioPrice)
-            )
-        );
+        if (zeroForOne) {
+            nextPrice = SqrtPrice.wrap(
+                FullMath.min(
+                    SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice), SqrtPrice.unwrap(thresholdRatioPrice)
+                )
+            );
+        } else {
+            nextPrice = SqrtPrice.wrap(
+                FullMath.max(
+                    SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice), SqrtPrice.unwrap(thresholdRatioPrice)
+                )
+            );
+        }
 
         // fil order => min price = best price
         // rebalance => min price = threshold price
         // add order => min price = target price
         uint8 rawFlag = 0;
         unchecked {
-            if (minPrice == bestPrice) {
+            if (nextPrice == bestPrice) {
                 rawFlag += 1;
             }
 
-            if (minPrice == targetPrice) {
+            if (nextPrice == targetPrice) {
                 rawFlag += 2;
             }
 
-            if (minPrice == thresholdRatioPrice) {
+            if (nextPrice == thresholdRatioPrice) {
                 rawFlag += 4;
             }
         }
