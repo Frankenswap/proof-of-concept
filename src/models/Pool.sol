@@ -19,9 +19,10 @@ struct Pool {
     uint128 reserve1;
     IShareToken shareToken;
     SqrtPrice sqrtPrice;
+    SqrtPrice lastRebalanceSqrtPrice;
     uint24 rangeRatioLower;
     uint24 rangeRatioUpper;
-    uint24 thresholdRatioLower; // TODO: SqrtPrice
+    uint24 thresholdRatioLower;
     uint24 thresholdRatioUpper;
     SqrtPrice bestAsk;
     SqrtPrice bestBid;
@@ -129,6 +130,9 @@ library PoolLibrary {
 
     struct StepComputations {
         SqrtPrice sqrtPrice;
+        SqrtPrice lastRebalanceSqrtPrice;
+        SqrtPrice rangeRatioPrice;
+        SqrtPrice thresholdRatioPrice;
         uint128 liquidity;
         uint256 amountIn;
         uint256 amountOut;
@@ -157,6 +161,7 @@ library PoolLibrary {
         StepComputations memory step;
 
         step.sqrtPrice = self.sqrtPrice;
+        step.lastRebalanceSqrtPrice = self.lastRebalanceSqrtPrice;
         step.reserve0 = self.reserve0;
         step.reserve1 = self.reserve1;
 
@@ -167,9 +172,14 @@ library PoolLibrary {
             if (step.sqrtPrice < params.targetTick) {
                 (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
             } else {
-                // TODO: ThresholdRatio calculate
-                SqrtPrice thresholdRatioLowerSqrtPrice = SqrtPrice.wrap(
-                    FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.thresholdRatioLower, 1e6).toUint160()
+                step.thresholdRatioPrice = SqrtPrice.wrap(
+                    FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.thresholdRatioLower, 1e6)
+                        .toUint160()
+                );
+
+                step.rangeRatioPrice = SqrtPrice.wrap(
+                    FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.rangeRatioUpper, 1e6).toUint160(
+                    )
                 );
 
                 // TODO: While loop to swap
@@ -177,14 +187,11 @@ library PoolLibrary {
                 // next price and flag
                 SqrtPrice bestPrice = self.bestBid;
                 (SqrtPrice targetPrice, SwapFlag flag) = SwapFlagLibrary.toFlag(
-                    bestPrice, params.targetTick, thresholdRatioLowerSqrtPrice, params.zeroForOne
+                    bestPrice, params.targetTick, step.thresholdRatioPrice, params.zeroForOne
                 );
 
                 // Liquidity
-                SqrtPrice sqrtPriceUpper = SqrtPrice.wrap(
-                    FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.rangeRatioUpper, 1e6).toUint160()
-                );
-                step.liquidity = LiquidityMath.getLiquidityUpper(step.sqrtPrice, sqrtPriceUpper, self.reserve0);
+                step.liquidity = LiquidityMath.getLiquidityUpper(step.sqrtPrice, step.rangeRatioPrice, self.reserve0);
 
                 // Compute Swap
                 (step.sqrtPrice, step.amountIn, step.amountOut) =
