@@ -231,9 +231,23 @@ library PoolLibrary {
 
                         balanceDelta = balanceDelta + delta;
                     }
+
+                    // If RebalanceFlag, rebalance
+                    if (flag.isRebalanceFlag()) {
+                        step.lastRebalanceSqrtPrice = step.sqrtPrice;
+                        step.thresholdRatioPrice = SqrtPrice.wrap(
+                            FullMath.mulDiv(
+                                SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.thresholdRatioLower, 1e6
+                            ).toUint160()
+                        );
+
+                        step.rangeRatioPrice = SqrtPrice.wrap(
+                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.rangeRatioUpper, 1e6)
+                                .toUint160()
+                        );
+                    }
                 }
 
-                // TODO: If RebalanceFlag, rebalance
                 // TODO: If AddOrderFlag, add order
             }
         } else {}
