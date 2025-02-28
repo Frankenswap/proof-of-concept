@@ -47,6 +47,7 @@ library PoolLibrary {
     error SqrtPriceCannotBeZero();
 
     using SafeCast for uint256;
+    using SafeCast for int256;
     using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
 
     function initialize(
@@ -130,6 +131,7 @@ library PoolLibrary {
 
     struct StepComputations {
         SqrtPrice sqrtPrice;
+        SqrtPrice bestPrice;
         SqrtPrice lastRebalanceSqrtPrice;
         SqrtPrice rangeRatioPrice;
         SqrtPrice thresholdRatioPrice;
@@ -166,9 +168,11 @@ library PoolLibrary {
         step.reserve1 = self.reserve1;
 
         int256 amountSpecifiedRemaining = params.amountSpecified;
+        int256 amountCalculated = 0;
 
         // zeroForOne -> Price Down -> targetTick / bestBid / thresholdRatioLower
         if (params.zeroForOne) {
+            step.bestPrice = self.bestBid;
             if (step.sqrtPrice < params.targetTick) {
                 (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
             } else {
@@ -185,9 +189,8 @@ library PoolLibrary {
                 // TODO: While loop to swap
 
                 // next price and flag
-                SqrtPrice bestPrice = self.bestBid;
                 (SqrtPrice targetPrice, SwapFlag flag) = SwapFlagLibrary.toFlag(
-                    bestPrice, params.targetTick, step.thresholdRatioPrice, params.zeroForOne
+                    step.bestPrice, params.targetTick, step.thresholdRatioPrice, params.zeroForOne
                 );
 
                 // Liquidity
@@ -200,15 +203,33 @@ library PoolLibrary {
                 unchecked {
                     if (params.amountSpecified > 0) {
                         amountSpecifiedRemaining -= step.amountOut.toInt256();
+                        amountCalculated -= step.amountIn.toInt256();
                     } else {
                         amountSpecifiedRemaining += step.amountIn.toInt256();
+                        amountCalculated += step.amountOut.toInt256();
                     }
 
                     step.reserve0 += step.amountIn.toUint128();
                     step.reserve1 -= step.amountOut.toUint128();
                 }
-                // TODO: If FilOrderFlag, fill order in orderLevel
-                // TODO: If fill all order in orderLevel, update best bid
+
+                if (step.sqrtPrice == targetPrice) {
+                    // Fill order in orderLevel
+                    if (flag.isFilOrderFlag()) {
+                        SqrtPrice sqrtPriceNext;
+                        BalanceDelta delta;
+                        
+                        // TODO: Int256
+                        (amountSpecifiedRemaining, sqrtPriceNext, delta) =
+                            self.orderLevels.fillOrder(params.zeroForOne, targetPrice, amountSpecifiedRemaining.toInt128());
+                        
+                        // TODO: If fill all order in orderLevel, update best bid
+                        step.bestPrice = sqrtPriceNext;
+
+                        balanceDelta = balanceDelta + delta;
+                    }
+                }
+
                 // TODO: If RebalanceFlag, rebalance
                 // TODO: If AddOrderFlag, add order
             }
