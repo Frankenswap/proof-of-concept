@@ -246,9 +246,17 @@ library PoolLibrary {
                                 .toUint160()
                         );
                     }
-                }
 
-                // TODO: If AddOrderFlag, add order
+                    // If AddOrderFlag, add order
+                    if (partiallyFillable && goodTillCancelled) {
+                        params.amountSpecified = amountSpecifiedRemaining.toInt128();
+                        params.currentTick = step.sqrtPrice;
+
+                        if (flag.isAddOrderFlag()) {
+                            (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
+                        }
+                    }
+                }
             }
         } else {}
     }
