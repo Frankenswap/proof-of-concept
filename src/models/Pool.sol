@@ -218,13 +218,16 @@ library PoolLibrary {
                     if (flag.isFilOrderFlag()) {
                         SqrtPrice sqrtPriceNext;
                         BalanceDelta delta;
-                        
+                        bool isUpdated;
                         // TODO: Int256
-                        (amountSpecifiedRemaining, sqrtPriceNext, delta) =
-                            self.orderLevels.fillOrder(params.zeroForOne, targetPrice, amountSpecifiedRemaining.toInt128());
-                        
-                        // TODO: If fill all order in orderLevel, update best bid
-                        step.bestPrice = sqrtPriceNext;
+                        (amountSpecifiedRemaining, sqrtPriceNext, delta, isUpdated) = self.orderLevels.fillOrder(
+                            params.zeroForOne, targetPrice, amountSpecifiedRemaining.toInt128()
+                        );
+
+                        // Why not use amountSpecifiedRemaining? amountSpecifiedRemaining == orderlevel.totalOpenAmount
+                        if (isUpdated) {
+                            step.bestPrice = sqrtPriceNext;
+                        }
 
                         balanceDelta = balanceDelta + delta;
                     }
