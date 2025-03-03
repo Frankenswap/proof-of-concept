@@ -77,8 +77,8 @@ library SqrtPriceMath {
         // zeroForOne = true, user gives token0, add = true
         // zeroForOne = false, user gives token1, add = true
         return zeroForOne
-            ? getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountIn, true)
-            : getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountIn, true);
+            ? getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountIn, true) // p_a
+            : getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountIn, true); // p_b
     }
 
     function getNextSqrtPriceFromOutput(SqrtPrice sqrtPrice, uint128 liquidity, uint256 amountOut, bool zeroForOne)
@@ -90,7 +90,7 @@ library SqrtPriceMath {
         // zeroForOne = true, user receives token1, add = false
         // zeroForOne = false, user receives token0, add = false
         return zeroForOne
-            ? getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountOut, false)
-            : getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountOut, false);
+            ? getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountOut, false) // p_a
+            : getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountOut, false); // p_b
     }
 }
