@@ -119,7 +119,7 @@ library OrderLevelLibrary {
         }
         // zero for one | exact input |
         //    true      |    true     | orderAmount = getAmount1Delta(-amount)
-        //    true      |    false    | orderAmount = -amount
+        //    true      |    false    | orderAmount = amount
         //    false     |    true     | orderAmount = getAmount0Delta(amount)
         //    false     |    false    | orderAmount = amount
         Price price = PriceLibrary.fromSqrtPrice(params.targetTick);
