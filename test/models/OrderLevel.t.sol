@@ -6,8 +6,10 @@ import {OrderLevel, OrderLevelLibrary} from "../../src/models/OrderLevel.sol";
 import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
 import {Price, PriceLibrary} from "../../src/models/Price.sol";
 import {Order} from "../../src/models/Order.sol";
+import {PoolLibrary} from "../../src/models/Pool.sol";
 import {OrderId, OrderIdLibrary} from "../../src/models/OrderId.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/models/BalanceDelta.sol";
+import {FullMath} from "../../src/library/FullMath.sol";
 
 contract OrderLevelTest is Test {
     using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
@@ -15,6 +17,7 @@ contract OrderLevelTest is Test {
     mapping(SqrtPrice => OrderLevel) public ticks;
     mapping(OrderId => Order) public orders;
 
+    // TODO: Exact In and zeroForOne test
     function setUp() public {
         ticks.initialize();
     }
@@ -23,16 +26,16 @@ contract OrderLevelTest is Test {
         internal
         returns (OrderId orderId)
     {
-        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
+        PoolLibrary.PlaceOrderParams memory params = PoolLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
-            amount: amount,
+            amountSpecified: int128(amount),
             targetTick: targetTick,
             currentTick: SqrtPrice.wrap(0),
             neighborTicks: neighborTicks
         });
 
-        return ticks.placeOrder(params);
+        (orderId,) = ticks.placeOrder(params);
     }
 
     function verifyMockOrder(OrderId orderId, SqrtPrice tick) internal view {
@@ -138,16 +141,16 @@ contract OrderLevelTest is Test {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
         // Remove zeroForOne = true
-        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
+        PoolLibrary.PlaceOrderParams memory params = PoolLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
-            amount: 10 ether,
+            amountSpecified: 10 ether,
             targetTick: SqrtPrice.wrap(100),
             currentTick: SqrtPrice.wrap(0),
             neighborTicks: neighborTicks
         });
 
-        OrderId orderId = ticks.placeOrder(params);
+        (OrderId orderId,) = ticks.placeOrder(params);
         ticks[SqrtPrice.wrap(100)].lastCloseOrderIndex = 1;
 
         (address maker, BalanceDelta delta) = ticks.removeOrder(orderId);
@@ -156,7 +159,7 @@ contract OrderLevelTest is Test {
 
         // Remove zeroForOne = fasle
         params.zeroForOne = false;
-        orderId = ticks.placeOrder(params);
+        (orderId,) = ticks.placeOrder(params);
         ticks[SqrtPrice.wrap(100)].lastCloseOrderIndex = 2;
         (maker, delta) = ticks.removeOrder(orderId);
         assertEq(maker, address(this));
@@ -184,16 +187,16 @@ contract OrderLevelTest is Test {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
         SqrtPrice targetTick = SqrtPrice.wrap(2 << 96);
         // Remove zeroForOne = true
-        OrderLevelLibrary.PlaceOrderParams memory params = OrderLevelLibrary.PlaceOrderParams({
+        PoolLibrary.PlaceOrderParams memory params = PoolLibrary.PlaceOrderParams({
             maker: address(this),
             zeroForOne: true,
-            amount: 10 ether,
+            amountSpecified: 10 ether,
             targetTick: targetTick,
             currentTick: SqrtPrice.wrap(0),
             neighborTicks: neighborTicks
         });
 
-        OrderId orderId = ticks.placeOrder(params);
+        (OrderId orderId,) = ticks.placeOrder(params);
 
         // Change order fill amount
         ticks[targetTick].orders[orderId].amountFilled = 2 ether;
@@ -205,7 +208,7 @@ contract OrderLevelTest is Test {
 
         // Remove zeroForOne = false
         params.zeroForOne = false;
-        orderId = ticks.placeOrder(params);
+        (orderId,) = ticks.placeOrder(params);
 
         // Change order fill amount
         ticks[targetTick].orders[orderId].amountFilled = 2 ether;
@@ -226,6 +229,14 @@ contract OrderLevelTest is Test {
         PlaceMockOrderParams calldata tick2,
         PlaceMockOrderParams calldata tick3
     ) public {
+        Price price1 = PriceLibrary.fromSqrtPrice(tick1.targetTick);
+        Price price2 = PriceLibrary.fromSqrtPrice(tick2.targetTick);
+        Price price3 = PriceLibrary.fromSqrtPrice(tick3.targetTick);
+
+        vm.assume(FullMath.mulNDivUp(uint256(tick1.amount), 96, Price.unwrap(price1)) < 1 << 127);
+        vm.assume(FullMath.mulNDivUp(uint256(tick2.amount), 96, Price.unwrap(price2)) < 1 << 127);
+        vm.assume(FullMath.mulNDivUp(uint256(tick3.amount), 96, Price.unwrap(price3)) < 1 << 127);
+
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
         placeMockOrder(tick1.targetTick, tick1.amount, neighborTicks);
@@ -244,6 +255,8 @@ contract OrderLevelTest is Test {
     ) public {
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
         Price price = PriceLibrary.fromSqrtPrice(targetTick);
+
+        vm.assume(FullMath.mulNDivUp(uint256(amount), 96, Price.unwrap(price)) < 1 << 127);
         vm.assume(uint256(amount) * Price.unwrap(price) < type(uint160).max);
 
         int128 fillAmount = int128(uint128(amount) + uint128(amountDelta));
@@ -289,6 +302,7 @@ contract OrderLevelTest is Test {
     {
         Price price = PriceLibrary.fromSqrtPrice(tick.targetTick);
         vm.assume(uint256(tick.amount) * Price.unwrap(price) < type(uint160).max);
+        vm.assume(FullMath.mulNDivUp(uint256(tick.amount), 96, Price.unwrap(price)) < 1 << 127);
         vm.assume(tick.amount > 1);
         vm.assume(otherAmount > 1);
 

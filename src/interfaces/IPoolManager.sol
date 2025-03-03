@@ -71,8 +71,6 @@ interface IPoolManager {
         external
         returns (BalanceDelta balanceDelta);
 
-    // TODO: add price limit, to decide whether use uint32 or SqrtPrice
-    // TODO: add neighbor ticks/SqrtPrices that are already in the linked map, to decide whether use uint32 or SqrtPrice
     struct PlaceOrderParams {
         // whether the order token0 for token1 or vice versa
         bool zeroForOne;
@@ -82,6 +80,8 @@ interface IPoolManager {
         bool goodTillCancelled;
         // the desired input amount (if negative), or the desired output amount (if positive)
         int128 amountSpecified;
+        int32 tickLimit;
+        SqrtPrice[] neighborTicks;
     }
 
     /// @notice Places an order

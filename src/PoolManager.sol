@@ -5,10 +5,10 @@ import {IPoolManager} from "./interfaces/IPoolManager.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {BalanceDelta} from "./models/BalanceDelta.sol";
 import {OrderId} from "./models/OrderId.sol";
-import {Pool} from "./models/Pool.sol";
+import {Pool, PoolLibrary} from "./models/Pool.sol";
 import {PoolId} from "./models/PoolId.sol";
 import {PoolKey} from "./models/PoolKey.sol";
-import {SqrtPrice} from "./models/SqrtPrice.sol";
+import {SqrtPrice, SqrtPriceLibrary} from "./models/SqrtPrice.sol";
 
 /// @title PoolManager
 contract PoolManager is IPoolManager {
@@ -53,7 +53,22 @@ contract PoolManager is IPoolManager {
         validatePoolKey(poolKey)
         returns (OrderId orderId, BalanceDelta balanceDelta)
     {
-        // TODO: Implement
+        SqrtPrice targetTick = SqrtPriceLibrary.fromTick(params.tickLimit);
+
+        PoolId poolId = poolKey.toId();
+
+        (orderId, balanceDelta) = _pools[poolId].placeOrder(
+            params.partiallyFillable,
+            params.goodTillCancelled,
+            PoolLibrary.PlaceOrderParams({
+                maker: msg.sender,
+                zeroForOne: params.zeroForOne,
+                amountSpecified: params.amountSpecified,
+                targetTick: targetTick,
+                currentTick: _pools[poolId].sqrtPrice,
+                neighborTicks: params.neighborTicks
+            })
+        );
     }
 
     /// @inheritdoc IPoolManager

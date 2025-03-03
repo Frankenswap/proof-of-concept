@@ -7,6 +7,7 @@ import {SqrtPrice} from "./SqrtPrice.sol";
 import {Price, PriceLibrary} from "./Price.sol";
 import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
 import {SafeCast} from "../library/SafeCast.sol";
+import {PoolLibrary} from "./Pool.sol";
 
 struct OrderLevel {
     SqrtPrice prev;
@@ -22,6 +23,7 @@ using OrderLevelLibrary for OrderLevel global;
 /// @title OrderLevelLibrary
 library OrderLevelLibrary {
     using SafeCast for uint128;
+    using SafeCast for int128;
 
     error OrderLevelAlreadyInitialized();
 
@@ -33,18 +35,10 @@ library OrderLevelLibrary {
         self[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(type(uint160).max);
     }
 
-    struct PlaceOrderParams {
-        address maker;
-        bool zeroForOne;
-        uint128 amount;
-        SqrtPrice targetTick;
-        SqrtPrice currentTick;
-        SqrtPrice[] neighborTicks;
-    }
-
-    function placeOrder(mapping(SqrtPrice => OrderLevel) storage self, PlaceOrderParams memory params)
+    // TODO: Issues #32
+    function placeOrder(mapping(SqrtPrice => OrderLevel) storage self, PoolLibrary.PlaceOrderParams memory params)
         internal
-        returns (OrderId orderId)
+        returns (OrderId orderId, BalanceDelta delta)
     {
         SqrtPrice neighborTick;
         SqrtPrice neighborPrev;
@@ -124,14 +118,44 @@ library OrderLevelLibrary {
                 self[targetTick].prev = prevTick;
             }
         }
+        // zero for one | exact input |
+        //    true      |    true     | orderAmount = getAmount1Delta(-amount)
+        //    true      |    false    | orderAmount = amount
+        //    false     |    true     | orderAmount = getAmount0Delta(amount)
+        //    false     |    false    | orderAmount = amount
+        Price price = PriceLibrary.fromSqrtPrice(params.targetTick);
+        uint128 orderAmount;
+
+        if (params.amountSpecified < 0) {
+            // exactIn
+            uint128 amountSpecifiedAbs = uint128(-params.amountSpecified);
+            if (params.zeroForOne) {
+                orderAmount = uint128(price.getAmount1Delta(amountSpecifiedAbs));
+                delta = toBalanceDelta(params.amountSpecified, 0);
+            } else {
+                orderAmount = uint128(price.getAmount0Delta(amountSpecifiedAbs));
+                delta = toBalanceDelta(0, params.amountSpecified);
+            }
+        } else {
+            // exactOut
+            orderAmount = uint128(params.amountSpecified);
+            if (params.zeroForOne) {
+                int128 amountIn = price.getAmount0DeltaUp(orderAmount);
+                delta = toBalanceDelta(-amountIn, 0);
+            } else {
+                int128 amountIn = price.getAmount1DeltaUp(orderAmount);
+                delta = toBalanceDelta(0, -amountIn);
+            }
+        }
 
         self[targetTick].lastOpenOrderIndex += 1;
-        self[targetTick].totalOpenAmount += params.amount;
+        self[targetTick].totalOpenAmount += orderAmount;
 
         orderId = OrderIdLibrary.from(params.targetTick, self[targetTick].lastOpenOrderIndex);
-        self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, params.amount);
+        self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, orderAmount);
     }
 
+    // TODO: Issues #32
     function removeOrder(mapping(SqrtPrice => OrderLevel) storage self, OrderId orderId)
         internal
         returns (address orderMaker, BalanceDelta delta)
@@ -181,6 +205,7 @@ library OrderLevelLibrary {
         uint64 lastCloseOrderIndex;
     }
 
+    // TODO: Issues #32
     function fillOrder(
         mapping(SqrtPrice => OrderLevel) storage self,
         bool zeroForOne,
