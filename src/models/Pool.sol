@@ -182,7 +182,7 @@ library PoolLibrary {
                 );
 
                 step.rangeRatioPrice = SqrtPrice.wrap(
-                    FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.rangeRatioUpper, 1e6).toUint160(
+                    FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.rangeRatioLower, 1e6).toUint160(
                     )
                 );
 
@@ -194,7 +194,7 @@ library PoolLibrary {
                 );
 
                 // Liquidity
-                step.liquidity = LiquidityMath.getLiquidityUpper(step.sqrtPrice, step.rangeRatioPrice, self.reserve0);
+                step.liquidity = LiquidityMath.getLiquidityLower(step.sqrtPrice, step.rangeRatioPrice, self.reserve1);
 
                 // Compute Swap
                 (step.sqrtPrice, step.amountIn, step.amountOut) =
@@ -242,7 +242,7 @@ library PoolLibrary {
                         );
 
                         step.rangeRatioPrice = SqrtPrice.wrap(
-                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.rangeRatioUpper, 1e6)
+                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.rangeRatioLower, 1e6)
                                 .toUint160()
                         );
                     }
