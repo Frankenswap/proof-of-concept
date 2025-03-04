@@ -7,16 +7,16 @@ import {SwapFlag, SwapFlagLibrary} from "../../src/models/SwapFlag.sol";
 contract SwapFlagTest is Test {
     function test_SwapFlag() public pure {
         SwapFlag flag = SwapFlag.wrap(uint8(1));
-        vm.assertTrue(flag.getFilOrderFlag());
-        vm.assertFalse(flag.getRebalanceFlag());
-        vm.assertFalse(flag.getAddOrderFlag());
+        vm.assertTrue(flag.isFilOrderFlag());
+        vm.assertFalse(flag.isRebalanceFlag());
+        vm.assertFalse(flag.isAddOrderFlag());
 
         flag = SwapFlag.wrap(uint8(3));
-        vm.assertTrue(flag.getRebalanceFlag());
-        vm.assertFalse(flag.getAddOrderFlag());
+        vm.assertTrue(flag.isRebalanceFlag());
+        vm.assertFalse(flag.isAddOrderFlag());
 
         flag = SwapFlag.wrap(uint8(4));
-        vm.assertTrue(flag.getAddOrderFlag());
+        vm.assertTrue(flag.isAddOrderFlag());
     }
 
     // TODO: 12 tests

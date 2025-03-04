@@ -60,6 +60,7 @@ contract PoolManager is IPoolManager {
         (orderId, balanceDelta) = _pools[poolId].placeOrder(
             params.partiallyFillable,
             params.goodTillCancelled,
+            poolKey,
             PoolLibrary.PlaceOrderParams({
                 maker: msg.sender,
                 zeroForOne: params.zeroForOne,

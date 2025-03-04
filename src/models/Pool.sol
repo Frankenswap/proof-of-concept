@@ -2,6 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IShareToken} from "../interfaces/IShareToken.sol";
+import {IConfigs} from "../interfaces/IConfigs.sol";
 import {FullMath} from "../library/FullMath.sol";
 import {LiquidityMath} from "../library/LiquidityMath.sol";
 import {SafeCast} from "../library/SafeCast.sol";
@@ -47,6 +48,7 @@ library PoolLibrary {
     error SqrtPriceCannotBeZero();
 
     using SafeCast for uint256;
+    using SafeCast for int256;
     using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
 
     function initialize(
@@ -100,6 +102,19 @@ library PoolLibrary {
         shareToken.mint(msg.sender, shares - minShares);
     }
 
+    function rebalance(Pool storage self, SqrtPrice sqrtPrice, PoolKey calldata poolKey)
+        internal
+        returns (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper)
+    {
+        (rangeRatioLower, rangeRatioUpper, thresholdRatioLower, thresholdRatioUpper) =
+            poolKey.configs.rebalance(poolKey.token0, poolKey.token1, sqrtPrice);
+
+        self.rangeRatioLower = rangeRatioLower;
+        self.rangeRatioUpper = rangeRatioUpper;
+        self.thresholdRatioLower = thresholdRatioLower;
+        self.thresholdRatioUpper = thresholdRatioUpper;
+    }
+
     function modifyReserves(Pool storage self, int128 sharesDelta) internal returns (BalanceDelta balanceDelta) {
         require(self.isInitialized(), PoolNotInitialized());
 
@@ -130,6 +145,7 @@ library PoolLibrary {
 
     struct StepComputations {
         SqrtPrice sqrtPrice;
+        SqrtPrice bestPrice;
         SqrtPrice lastRebalanceSqrtPrice;
         SqrtPrice rangeRatioPrice;
         SqrtPrice thresholdRatioPrice;
@@ -156,6 +172,7 @@ library PoolLibrary {
         Pool storage self,
         bool partiallyFillable,
         bool goodTillCancelled,
+        PoolKey calldata poolKey,
         PlaceOrderParams memory params
     ) internal returns (OrderId orderId, BalanceDelta balanceDelta) {
         StepComputations memory step;
@@ -166,9 +183,11 @@ library PoolLibrary {
         step.reserve1 = self.reserve1;
 
         int256 amountSpecifiedRemaining = params.amountSpecified;
+        int256 amountCalculated = 0;
 
         // zeroForOne -> Price Down -> targetTick / bestBid / thresholdRatioLower
         if (params.zeroForOne) {
+            step.bestPrice = self.bestBid;
             if (step.sqrtPrice < params.targetTick) {
                 (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
             } else {
@@ -185,9 +204,9 @@ library PoolLibrary {
                 // TODO: While loop to swap
 
                 // next price and flag
-                SqrtPrice bestPrice = self.bestBid;
-                (SqrtPrice targetPrice, SwapFlag flag) =
-                    SwapFlagLibrary.toFlag(bestPrice, params.targetTick, step.thresholdRatioPrice, params.zeroForOne);
+                (SqrtPrice targetPrice, SwapFlag flag) = SwapFlagLibrary.toFlag(
+                    step.bestPrice, params.targetTick, step.thresholdRatioPrice, params.zeroForOne
+                );
 
                 // Liquidity
                 step.liquidity = LiquidityMath.getLiquidityLower(step.sqrtPrice, step.rangeRatioPrice, self.reserve1);
@@ -199,17 +218,60 @@ library PoolLibrary {
                 unchecked {
                     if (params.amountSpecified > 0) {
                         amountSpecifiedRemaining -= step.amountOut.toInt256();
+                        amountCalculated -= step.amountIn.toInt256();
                     } else {
                         amountSpecifiedRemaining += step.amountIn.toInt256();
+                        amountCalculated += step.amountOut.toInt256();
                     }
 
                     step.reserve0 += step.amountIn.toUint128();
                     step.reserve1 -= step.amountOut.toUint128();
                 }
-                // TODO: If FilOrderFlag, fill order in orderLevel
-                // TODO: If fill all order in orderLevel, update best bid
-                // TODO: If RebalanceFlag, rebalance
-                // TODO: If AddOrderFlag, add order
+
+                if (step.sqrtPrice == targetPrice) {
+                    // Fill order in orderLevel
+                    if (flag.isFilOrderFlag()) {
+                        SqrtPrice sqrtPriceNext;
+                        BalanceDelta delta;
+                        bool isUpdated;
+                        // TODO: Int256
+                        (amountSpecifiedRemaining, sqrtPriceNext, delta, isUpdated) = self.orderLevels.fillOrder(
+                            params.zeroForOne, targetPrice, amountSpecifiedRemaining.toInt128()
+                        );
+
+                        // Why not use amountSpecifiedRemaining? amountSpecifiedRemaining == orderlevel.totalOpenAmount
+                        if (isUpdated) {
+                            step.bestPrice = sqrtPriceNext;
+                        }
+
+                        balanceDelta = balanceDelta + delta;
+                    }
+
+                    // If RebalanceFlag, rebalance
+                    if (flag.isRebalanceFlag()) {
+                        (uint24 rangeRatioLower,, uint24 thresholdRatioLower,) = self.rebalance(step.sqrtPrice, poolKey);
+                        step.lastRebalanceSqrtPrice = step.sqrtPrice;
+                        step.thresholdRatioPrice = SqrtPrice.wrap(
+                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), thresholdRatioLower, 1e6)
+                                .toUint160()
+                        );
+
+                        step.rangeRatioPrice = SqrtPrice.wrap(
+                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), rangeRatioLower, 1e6)
+                                .toUint160()
+                        );
+                    }
+
+                    // If AddOrderFlag, add order
+                    if (flag.isAddOrderFlag()) {
+                        if (partiallyFillable && goodTillCancelled) {
+                            params.amountSpecified = amountSpecifiedRemaining.toInt128();
+                            params.currentTick = step.sqrtPrice;
+
+                            (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
+                        }
+                    }
+                }
             }
         } else {}
     }
