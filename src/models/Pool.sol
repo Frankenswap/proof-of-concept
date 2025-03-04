@@ -2,6 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IShareToken} from "../interfaces/IShareToken.sol";
+import {IConfigs} from "../interfaces/IConfigs.sol";
 import {FullMath} from "../library/FullMath.sol";
 import {LiquidityMath} from "../library/LiquidityMath.sol";
 import {SafeCast} from "../library/SafeCast.sol";
@@ -101,6 +102,19 @@ library PoolLibrary {
         shareToken.mint(msg.sender, shares - minShares);
     }
 
+    function rebalance(Pool storage self, SqrtPrice sqrtPrice, PoolKey calldata poolKey)
+        internal
+        returns (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper)
+    {
+        (rangeRatioLower, rangeRatioUpper, thresholdRatioLower, thresholdRatioUpper) =
+            poolKey.configs.rebalance(poolKey.token0, poolKey.token1, sqrtPrice);
+
+        self.rangeRatioLower = rangeRatioLower;
+        self.rangeRatioUpper = rangeRatioUpper;
+        self.thresholdRatioLower = thresholdRatioLower;
+        self.thresholdRatioUpper = thresholdRatioUpper;
+    }
+
     function modifyReserves(Pool storage self, int128 sharesDelta) internal returns (BalanceDelta balanceDelta) {
         require(self.isInitialized(), PoolNotInitialized());
 
@@ -158,6 +172,7 @@ library PoolLibrary {
         Pool storage self,
         bool partiallyFillable,
         bool goodTillCancelled,
+        PoolKey calldata poolKey,
         PlaceOrderParams memory params
     ) internal returns (OrderId orderId, BalanceDelta balanceDelta) {
         StepComputations memory step;
@@ -234,15 +249,15 @@ library PoolLibrary {
 
                     // If RebalanceFlag, rebalance
                     if (flag.isRebalanceFlag()) {
+                        (uint24 rangeRatioLower,, uint24 thresholdRatioLower,) = self.rebalance(step.sqrtPrice, poolKey);
                         step.lastRebalanceSqrtPrice = step.sqrtPrice;
                         step.thresholdRatioPrice = SqrtPrice.wrap(
-                            FullMath.mulDiv(
-                                SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.thresholdRatioLower, 1e6
-                            ).toUint160()
+                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), thresholdRatioLower, 1e6)
+                                .toUint160()
                         );
 
                         step.rangeRatioPrice = SqrtPrice.wrap(
-                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.rangeRatioLower, 1e6)
+                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), rangeRatioLower, 1e6)
                                 .toUint160()
                         );
                     }

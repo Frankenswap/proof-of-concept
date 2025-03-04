@@ -25,4 +25,8 @@ interface IConfigs {
             uint24 thresholdRatioUpper,
             uint32 minShares
         );
+
+    function rebalance(Token token0, Token token1, SqrtPrice sqrtPrice)
+        external
+        returns (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper);
 }
