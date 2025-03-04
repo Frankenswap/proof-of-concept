@@ -246,6 +246,7 @@ contract OrderLevelTest is Test {
         verfiyLink(4, 3, uint256(tick1.amount) + tick2.amount + tick3.amount);
     }
 
+    // TODO: isUpdated
     // TODO: ExactOut
     function test_fuzz_test_fuzz_fillOrder_full(
         SqrtPrice targetTick,
@@ -263,7 +264,7 @@ contract OrderLevelTest is Test {
 
         placeMockOrder(targetTick, amount, neighborTicks);
 
-        (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext,) =
+        (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext,,) =
             ticks.fillOrder(zeroForOne, targetTick, fillAmount);
 
         assertEq(uint128(amountSpecifiedRemaining), uint128(amountDelta));
@@ -289,7 +290,7 @@ contract OrderLevelTest is Test {
 
         placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
 
-        (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) - 1));
+        (int128 amountSpecified,,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) - 1));
 
         assertEq(amountSpecified, 0);
         assertEq(ticks[tick.targetTick].totalOpenAmount, 1);
@@ -312,7 +313,7 @@ contract OrderLevelTest is Test {
         placeMockOrder(tick.targetTick, otherAmount, neighborTicks);
 
         assertEq(ticks[tick.targetTick].totalOpenAmount, uint128(tick.amount) + uint128(otherAmount));
-        (int128 amountSpecified,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) + 1));
+        (int128 amountSpecified,,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) + 1));
 
         assertEq(amountSpecified, 0);
         assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 1);

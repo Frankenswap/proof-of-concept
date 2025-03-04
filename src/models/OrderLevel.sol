@@ -211,7 +211,7 @@ library OrderLevelLibrary {
         bool zeroForOne,
         SqrtPrice sqrtPrice,
         int128 amountSpecified
-    ) internal returns (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext, BalanceDelta delta) {
+    ) internal returns (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext, BalanceDelta delta, bool isUpdated) {
         OrderLevel storage level = self[sqrtPrice];
         Price price = PriceLibrary.fromSqrtPrice(sqrtPrice);
 
@@ -250,6 +250,7 @@ library OrderLevelLibrary {
 
         // Fill AmountIn <-> Order Level TotalOpenAmount
         if (amountIn >= cache.totalOpenAmount) {
+            isUpdated = true;
             level.totalOpenAmount = 0;
             level.lastCloseOrderIndex = cache.lastOpenOrderIndex;
 
@@ -276,6 +277,7 @@ library OrderLevelLibrary {
                     : (amountIn - cache.totalOpenAmount).toInt128(); // exactIn, zeroForOne = false, amountSpecified = token 1
             }
         } else {
+            isUpdated = false;
             mapping(OrderId => Order) storage orders = level.orders;
 
             // In exactOut mode, the tokens given by the user will be converted into another token to match the orders

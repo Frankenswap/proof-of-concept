@@ -31,6 +31,11 @@ library SafeCast {
         return int128(int256(x));
     }
 
+    function toInt128(int256 x) internal pure returns (int128 y) {
+        y = int128(x);
+        if (y != x) revert SafeCastOverflow();
+    }
+
     function abs(int128 x) internal pure returns (uint128 y) {
         assembly ("memory-safe") {
             x := signextend(15, x)

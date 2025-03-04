@@ -50,19 +50,19 @@ library SwapFlagLibrary {
         flag = SwapFlag.wrap(rawFlag);
     }
 
-    function getFilOrderFlag(SwapFlag flag) internal pure returns (bool filOrder) {
+    function isFilOrderFlag(SwapFlag flag) internal pure returns (bool filOrder) {
         assembly {
             filOrder := and(flag, 1)
         }
     }
 
-    function getRebalanceFlag(SwapFlag flag) internal pure returns (bool rebalance) {
+    function isRebalanceFlag(SwapFlag flag) internal pure returns (bool rebalance) {
         assembly {
             rebalance := and(flag, 2)
         }
     }
 
-    function getAddOrderFlag(SwapFlag flag) internal pure returns (bool addOrder) {
+    function isAddOrderFlag(SwapFlag flag) internal pure returns (bool addOrder) {
         assembly {
             addOrder := and(flag, 4)
         }
