@@ -19,6 +19,8 @@ library SqrtPriceMath {
         uint160 sqrtPriceRaw = SqrtPrice.unwrap(sqrtPrice);
 
         if (add) {
+            // Add token0, price decreases -> p_a
+            // p_a = L * sqrtP / (L + amount0 * sqrtP)
             unchecked {
                 uint256 product = amount * sqrtPriceRaw;
                 if (product / amount == sqrtPriceRaw) {
@@ -32,6 +34,8 @@ library SqrtPriceMath {
                 );
             }
         } else {
+            // Remove token0, price increases -> p_b
+            // p_b = L * sqrtP / (L - amount0 * sqrtP)
             unchecked {
                 uint256 product = amount * sqrtPriceRaw;
                 // TODO: check for overflow
@@ -48,10 +52,14 @@ library SqrtPriceMath {
     {
         uint256 sqrtPriceRaw = SqrtPrice.unwrap(sqrtPrice);
         if (add) {
+            // Add token1, price increases -> p_b
+            // p_b = sqrtP + amount1 / L
             uint256 quotient = FullMath.mulNDiv(amount, 96, liquidity);
 
             return SqrtPrice.wrap((sqrtPriceRaw + quotient).toUint160());
         } else {
+            // Remove token1, price decreases -> p_a
+            // p_a = sqrtP - amount1 / L
             uint256 quotient = FullMath.mulNDivUp(amount, 96, liquidity);
             // TODO: check for overflow
             return SqrtPrice.wrap((sqrtPriceRaw - quotient).toUint160());
@@ -64,9 +72,13 @@ library SqrtPriceMath {
         returns (SqrtPrice)
     {
         // TODO: check for overflow
+
+        // In exactIn:
+        // zeroForOne = true, user gives token0, add = true
+        // zeroForOne = false, user gives token1, add = true
         return zeroForOne
-            ? getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountIn, true)
-            : getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountIn, true);
+            ? getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountIn, true) // p_a
+            : getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountIn, true); // p_b
     }
 
     function getNextSqrtPriceFromOutput(SqrtPrice sqrtPrice, uint128 liquidity, uint256 amountOut, bool zeroForOne)
@@ -74,8 +86,11 @@ library SqrtPriceMath {
         pure
         returns (SqrtPrice)
     {
+        // In exactOut:
+        // zeroForOne = true, user receives token1, add = false
+        // zeroForOne = false, user receives token0, add = false
         return zeroForOne
-            ? getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountOut, false)
-            : getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountOut, false);
+            ? getNextSqrtPriceFromAmount1RoundingDown(sqrtPrice, liquidity, amountOut, false) // p_a
+            : getNextSqrtPriceFromAmount0RoundingUp(sqrtPrice, liquidity, amountOut, false); // p_b
     }
 }
