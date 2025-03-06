@@ -35,6 +35,7 @@ library OrderLevelLibrary {
         self[SqrtPrice.wrap(type(uint160).max)].next = SqrtPrice.wrap(type(uint160).max);
     }
 
+    // TODO: Issues #32
     function placeOrder(mapping(SqrtPrice => OrderLevel) storage self, PoolLibrary.PlaceOrderParams memory params)
         internal
         returns (OrderId orderId, BalanceDelta delta)
@@ -119,7 +120,7 @@ library OrderLevelLibrary {
         }
         // zero for one | exact input |
         //    true      |    true     | orderAmount = getAmount1Delta(-amount)
-        //    true      |    false    | orderAmount = -amount
+        //    true      |    false    | orderAmount = amount
         //    false     |    true     | orderAmount = getAmount0Delta(amount)
         //    false     |    false    | orderAmount = amount
         Price price = PriceLibrary.fromSqrtPrice(params.targetTick);
@@ -154,7 +155,7 @@ library OrderLevelLibrary {
         self[targetTick].orders[orderId].initialize(params.maker, params.zeroForOne, orderAmount);
     }
 
-    // TODO: balanceDelta
+    // TODO: Issues #32
     function removeOrder(mapping(SqrtPrice => OrderLevel) storage self, OrderId orderId)
         internal
         returns (address orderMaker, BalanceDelta delta)
@@ -204,6 +205,7 @@ library OrderLevelLibrary {
         uint64 lastCloseOrderIndex;
     }
 
+    // TODO: Issues #32
     function fillOrder(
         mapping(SqrtPrice => OrderLevel) storage self,
         bool zeroForOne,
