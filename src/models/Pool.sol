@@ -51,13 +51,10 @@ library PoolLibrary {
     using SafeCast for int256;
     using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
 
-    function initialize(
-        Pool storage self,
-        PoolKey calldata poolKey,
-        SqrtPrice sqrtPrice,
-        uint128 amount0Desired,
-        uint128 amount1Desired
-    ) internal returns (IShareToken shareToken, uint128 shares, BalanceDelta balanceDelta) {
+    function initialize(Pool storage self, PoolKey calldata poolKey, SqrtPrice sqrtPrice, uint128 shares)
+        internal
+        returns (IShareToken shareToken, BalanceDelta balanceDelta)
+    {
         require(!self.isInitialized(), PoolAlreadyInitialized());
         require(SqrtPrice.unwrap(sqrtPrice) != 0, SqrtPriceCannotBeZero());
 
@@ -77,10 +74,6 @@ library PoolLibrary {
             SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioLower, 1e6).toUint160());
         SqrtPrice sqrtPriceUpper =
             SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioUpper, 1e6).toUint160());
-
-        uint128 liquidityLower = LiquidityMath.getLiquidityLower(sqrtPrice, sqrtPriceLower, amount1Desired);
-        uint128 liquidityUpper = LiquidityMath.getLiquidityUpper(sqrtPrice, sqrtPriceUpper, amount0Desired);
-        shares = liquidityLower > liquidityUpper ? liquidityUpper : liquidityLower;
 
         uint256 amount0 = LiquidityMath.getAmount0(sqrtPrice, sqrtPriceUpper, shares, true);
         uint256 amount1 = LiquidityMath.getAmount1(sqrtPriceLower, sqrtPrice, shares, true);
