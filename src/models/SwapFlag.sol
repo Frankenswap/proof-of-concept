@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {SqrtPrice} from "./SqrtPrice.sol";
-import {FullMath} from "../library/FullMath.sol";
+import {FullMath} from "../libraries/FullMath.sol";
 
 type SwapFlag is uint8;
 

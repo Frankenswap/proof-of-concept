@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {SafeCast} from "../library/SafeCast.sol";
+import {SafeCast} from "../libraries/SafeCast.sol";
 
 /// @dev Layout: int128 amount0 | int128 amount1
 type BalanceDelta is bytes32;

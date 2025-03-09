@@ -20,14 +20,13 @@ contract PoolManager is IPoolManager {
     }
 
     /// @inheritdoc IPoolManager
-    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice, uint128 amount0Desired, uint128 amount1Desired)
+    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice, uint128 shares)
         external
         validatePoolKey(poolKey)
-        returns (PoolId poolId, IShareToken shareToken, uint128 shares, BalanceDelta balanceDelta)
+        returns (PoolId poolId, IShareToken shareToken, BalanceDelta balanceDelta)
     {
         poolId = poolKey.toId();
-        (shareToken, shares, balanceDelta) =
-            _pools[poolId].initialize(poolKey, sqrtPrice, amount0Desired, amount1Desired);
+        (shareToken, balanceDelta) = _pools[poolId].initialize(poolKey, sqrtPrice, shares);
 
         emit Initialize(
             poolKey.token0, poolKey.token1, poolKey.configs, poolId, shareToken, sqrtPrice, shares, balanceDelta
