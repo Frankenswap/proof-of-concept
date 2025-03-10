@@ -35,9 +35,7 @@ contract MockConfig is IConfigs {
     }
 
     function initialize(Token token0, Token token1, SqrtPrice)
-        external
-        view
-        override
+        external override
         returns (
             uint24 rangeRatioLower,
             uint24 rangeRatioUpper,
@@ -53,19 +51,5 @@ contract MockConfig is IConfigs {
         thresholdRatioLower = config.thresholdRatioLower;
         thresholdRatioUpper = config.thresholdRatioUpper;
         minShares = config.minShares;
-    }
-
-    function rebalance(Token token0, Token token1, SqrtPrice)
-        external
-        view
-        override
-        returns (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper)
-    {
-        ConfigArgs memory config = configs[Token.unwrap(token0)][Token.unwrap(token1)];
-
-        rangeRatioLower = config.rangeRatioLower;
-        rangeRatioUpper = config.rangeRatioUpper;
-        thresholdRatioLower = config.thresholdRatioLower;
-        thresholdRatioUpper = config.thresholdRatioUpper;
     }
 }
