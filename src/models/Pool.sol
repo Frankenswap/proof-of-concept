@@ -15,6 +15,8 @@ import {OrderId} from "./OrderId.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 import {SwapFlag, SwapFlagLibrary} from "./SwapFlag.sol";
 
+import {console} from "forge-std/console.sol";
+
 struct Pool {
     uint128 reserve0;
     uint128 reserve1;
@@ -75,15 +77,26 @@ library PoolLibrary {
         // TODO: hardcoding 1e6 for now
         SqrtPrice sqrtPriceLower =
             SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioLower, 1e6).toUint160());
+        console.log("sqrtPriceLower: ", SqrtPrice.unwrap(sqrtPriceLower));
+
         SqrtPrice sqrtPriceUpper =
             SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(sqrtPrice), rangeRatioUpper, 1e6).toUint160());
+        console.log("sqrtPriceUpper: ", SqrtPrice.unwrap(sqrtPriceUpper));
 
         uint128 liquidityLower = LiquidityMath.getLiquidityLower(sqrtPrice, sqrtPriceLower, amount1Desired);
+        console.log("liquidityLower: ", liquidityLower);
+
         uint128 liquidityUpper = LiquidityMath.getLiquidityUpper(sqrtPrice, sqrtPriceUpper, amount0Desired);
+        console.log("liquidityUpper: ", liquidityUpper);
+
         shares = liquidityLower > liquidityUpper ? liquidityUpper : liquidityLower;
+        console.log("shares: ", shares);
 
         uint256 amount0 = LiquidityMath.getAmount0(sqrtPrice, sqrtPriceUpper, shares, true);
+        console.log("amount0: ", amount0);
         uint256 amount1 = LiquidityMath.getAmount1(sqrtPriceLower, sqrtPrice, shares, true);
+        console.log("amount1: ", amount1);
+
         balanceDelta = toBalanceDelta(-amount0.uint256toInt128(), -amount1.uint256toInt128());
 
         self.reserve0 = amount0.toUint128();
@@ -190,6 +203,8 @@ library PoolLibrary {
             step.bestPrice = self.bestBid;
             if (step.sqrtPrice < params.targetTick) {
                 (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
+                // TODO: update order best ask
+                // TODO: partially fillable
             } else {
                 step.thresholdRatioPrice = SqrtPrice.wrap(
                     FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.thresholdRatioLower, 1e6)
