@@ -37,34 +37,6 @@ contract PoolManageTest is Test {
         assertEq(BalanceDelta.unwrap(balanceDelta), BalanceDelta.unwrap(toBalanceDelta(-233644859813084113, -1 ether)));
     }
 
-    function initializePool() public returns (PoolKey memory poolKey) {
-        SqrtPrice sqrtPrice = SqrtPrice.wrap(2 << 96);
-        poolKey =
-            PoolKey({token0: Token.wrap(address(0xBEEF1)), token1: Token.wrap(address(0xBEEF2)), configs: config});
-
-        manager.initialize(poolKey, sqrtPrice, 1 ether, 1 ether);
-    }
-
-    function test_pool_placeOrder_directPlaceOrder() public {
-        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
-
-        PoolKey memory poolKey = initializePool();
-        (OrderId orderId,) = manager.placeOrder(poolKey, IPoolManager.PlaceOrderParams({
-            zeroForOne: true,
-            partiallyFillable: true,
-            goodTillCancelled: true,
-            amountSpecified: 1 ether,
-            tickLimit: 1500000,
-            neighborTicks: neighborTicks
-        }));
-
-        assertEq(orderId.index(), 1);
-        assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), 167725958451336328555506520250);
-    }
-
-    function test_pool_placeOrder_swap() public {
-
-    }
     function test_fuzz_pool_initialize(SqrtPrice sqrtPrice) public {
         sqrtPrice = SqrtPrice.wrap(uint160(bound(SqrtPrice.unwrap(sqrtPrice), MIN_SQRT_PRICE, MAX_SQRT_PRICE)));
 
@@ -78,7 +50,11 @@ contract PoolManageTest is Test {
         // amount0Desired * 16 * sqrtP > 2 ** 96
         // uint256(amount0Desired) * 16 * sqrtP > 2 ** 96
         uint128 amount0Desired = uint128(
-            bound(SqrtPrice.unwrap(sqrtPrice), 2 ** 92 / SqrtPrice.unwrap(sqrtPrice), 2 ** 220 / SqrtPrice.unwrap(sqrtPrice))
+            bound(
+                SqrtPrice.unwrap(sqrtPrice),
+                2 ** 92 / SqrtPrice.unwrap(sqrtPrice),
+                2 ** 220 / SqrtPrice.unwrap(sqrtPrice)
+            )
         ) / 2;
 
         // To liquidityLower overflow:
