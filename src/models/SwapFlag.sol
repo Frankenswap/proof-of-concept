@@ -39,11 +39,11 @@ library SwapFlagLibrary {
                 rawFlag += 1;
             }
 
-            if (nextPrice == targetPrice) {
+            if (nextPrice == thresholdRatioPrice) {
                 rawFlag += 2;
             }
 
-            if (nextPrice == thresholdRatioPrice) {
+            if (nextPrice == targetPrice) {
                 rawFlag += 4;
             }
         }
