@@ -16,14 +16,15 @@ library SwapFlagLibrary {
         returns (SqrtPrice nextPrice, SwapFlag flag)
     {
         if (zeroForOne) {
+            // Price Down
             nextPrice = SqrtPrice.wrap(
-                FullMath.min(
+                FullMath.max(
                     SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice), SqrtPrice.unwrap(thresholdRatioPrice)
                 )
             );
         } else {
             nextPrice = SqrtPrice.wrap(
-                FullMath.max(
+                FullMath.min(
                     SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice), SqrtPrice.unwrap(thresholdRatioPrice)
                 )
             );
