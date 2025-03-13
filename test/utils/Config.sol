@@ -9,8 +9,6 @@ contract MockConfig is IConfigs {
     struct ConfigArgs {
         uint24 rangeRatioLower;
         uint24 rangeRatioUpper;
-        uint24 thresholdRatioLower;
-        uint24 thresholdRatioUpper;
         uint32 minShares;
     }
 
@@ -21,15 +19,11 @@ contract MockConfig is IConfigs {
         address token1,
         uint24 rangeRatioLower,
         uint24 rangeRatioUpper,
-        uint24 thresholdRatioLower,
-        uint24 thresholdRatioUpper,
         uint32 minShares
     ) public {
         configs[token0][token1] = ConfigArgs({
             rangeRatioLower: rangeRatioLower,
             rangeRatioUpper: rangeRatioUpper,
-            thresholdRatioLower: thresholdRatioLower,
-            thresholdRatioUpper: thresholdRatioUpper,
             minShares: minShares
         });
     }
@@ -41,8 +35,6 @@ contract MockConfig is IConfigs {
         returns (
             uint24 rangeRatioLower,
             uint24 rangeRatioUpper,
-            uint24 thresholdRatioLower,
-            uint24 thresholdRatioUpper,
             uint32 minShares
         )
     {
@@ -50,22 +42,6 @@ contract MockConfig is IConfigs {
 
         rangeRatioLower = config.rangeRatioLower;
         rangeRatioUpper = config.rangeRatioUpper;
-        thresholdRatioLower = config.thresholdRatioLower;
-        thresholdRatioUpper = config.thresholdRatioUpper;
         minShares = config.minShares;
-    }
-
-    function rebalance(Token token0, Token token1, SqrtPrice)
-        external
-        view
-        override
-        returns (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper)
-    {
-        ConfigArgs memory config = configs[Token.unwrap(token0)][Token.unwrap(token1)];
-
-        rangeRatioLower = config.rangeRatioLower;
-        rangeRatioUpper = config.rangeRatioUpper;
-        thresholdRatioLower = config.thresholdRatioLower;
-        thresholdRatioUpper = config.thresholdRatioUpper;
     }
 }
