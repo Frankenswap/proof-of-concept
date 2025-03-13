@@ -288,13 +288,13 @@ library PoolLibrary {
                             params.currentTick = step.sqrtPrice;
 
                             (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
+                            self.bestBid = step.bestPrice;
                         }
                     }
                 }
             }
 
             // End while
-            self.bestBid = step.bestPrice;
         } else {}
 
         self.reserve0 = step.reserve0;
