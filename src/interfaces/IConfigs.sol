@@ -13,14 +13,8 @@ interface IConfigs {
     /// @param sqrtPrice The initial square root price
     /// @return rangeRatioLower The lower range ratio
     /// @return rangeRatioUpper The upper range ratio
-    /// @return thresholdRatioLower The lower threshold ratio
-    /// @return thresholdRatioUpper The upper threshold ratio
     /// @return minShares The minimum shares
     function initialize(Token token0, Token token1, SqrtPrice sqrtPrice)
         external
-        returns (
-            uint24 rangeRatioLower,
-            uint24 rangeRatioUpper,
-            uint32 minShares
-        );
+        returns (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint32 minShares);
 }
