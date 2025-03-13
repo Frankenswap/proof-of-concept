@@ -199,7 +199,7 @@ library PoolLibrary {
             step.bestPrice = self.bestBid;
             if (step.sqrtPrice < params.targetTick) {
                 // partially fillable
-                if (partiallyFillable && goodTillCancelled) {
+                if (goodTillCancelled) {
                     (orderId, balanceDelta) = self.orderLevels.placeOrder(params);
                     // update order best ask
                     if (params.targetTick < self.bestAsk) {
