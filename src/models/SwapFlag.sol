@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {SqrtPrice} from "./SqrtPrice.sol";
-import {FullMath} from "../library/FullMath.sol";
+import {FullMath} from "../libraries/FullMath.sol";
 
 type SwapFlag is uint8;
 
@@ -52,19 +52,19 @@ library SwapFlagLibrary {
     }
 
     function isFilOrderFlag(SwapFlag flag) internal pure returns (bool filOrder) {
-        assembly {
+        assembly ("memory-safe") {
             filOrder := and(flag, 1)
         }
     }
 
     function isRebalanceFlag(SwapFlag flag) internal pure returns (bool rebalance) {
-        assembly {
+        assembly ("memory-safe") {
             rebalance := and(flag, 2)
         }
     }
 
     function isAddOrderFlag(SwapFlag flag) internal pure returns (bool addOrder) {
-        assembly {
+        assembly ("memory-safe") {
             addOrder := and(flag, 4)
         }
     }

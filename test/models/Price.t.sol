@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {FullMath} from "../../src/library/FullMath.sol";
+import {FullMath} from "../../src/libraries/FullMath.sol";
 import {Price, PriceLibrary} from "../../src/models/Price.sol";
 import {SqrtPrice} from "../../src/models/SqrtPrice.sol";
 

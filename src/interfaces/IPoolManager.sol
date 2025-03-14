@@ -53,15 +53,13 @@ interface IPoolManager {
     /// @notice Initializes a new pool
     /// @param poolKey The pool key
     /// @param sqrtPrice The initial square root price
-    /// @param amount0Desired The desired initial amount of token0
-    /// @param amount1Desired The desired initial amount of token1
+    /// @param shares The initial shares
     /// @return poolId The pool id
     /// @return shareToken The share token
-    /// @return shares The initial shares
     /// @return balanceDelta The balance delta required
-    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice, uint128 amount0Desired, uint128 amount1Desired)
+    function initialize(PoolKey calldata poolKey, SqrtPrice sqrtPrice, uint128 shares)
         external
-        returns (PoolId poolId, IShareToken shareToken, uint128 shares, BalanceDelta balanceDelta);
+        returns (PoolId poolId, IShareToken shareToken, BalanceDelta balanceDelta);
 
     /// @notice Modifies the reserves of a pool
     /// @param poolKey The pool key

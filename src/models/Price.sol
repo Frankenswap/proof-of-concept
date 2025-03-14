@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {SqrtPrice} from "./SqrtPrice.sol";
-import {FullMath} from "../library/FullMath.sol";
-import {SafeCast} from "../library/SafeCast.sol";
+import {FullMath} from "../libraries/FullMath.sol";
+import {SafeCast} from "../libraries/SafeCast.sol";
 
 /// @dev Represented as Q160.96 fixed point number
 type Price is uint256;

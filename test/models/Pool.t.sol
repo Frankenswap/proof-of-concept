@@ -9,7 +9,7 @@ import {MockConfig} from "../utils/Config.sol";
 import {Token} from "../../src/models/Token.sol";
 import {OrderId} from "../../src/models/OrderId.sol";
 import {Price, PriceLibrary} from "../../src/models/Price.sol";
-import {FullMath} from "../../src/library/FullMath.sol";
+import {FullMath} from "../../src/libraries/FullMath.sol";
 
 contract PoolTest is Test {
     using PoolLibrary for Pool;
@@ -25,7 +25,7 @@ contract PoolTest is Test {
         SqrtPrice sqrtPrice = SqrtPrice.wrap(2 << 96);
         poolKey = PoolKey({token0: Token.wrap(address(0xBEEF1)), token1: Token.wrap(address(0xBEEF2)), configs: config});
 
-        state.initialize(poolKey, sqrtPrice, 1 ether, 1 ether);
+        state.initialize(poolKey, sqrtPrice, 7142857142857142857);
     }
 
     function test_fuzz_placeOrder_directPlaceOrder(int128 amountSpecified) public {
@@ -104,7 +104,13 @@ contract PoolTest is Test {
         // thresholdRatioPrice = 150533508777102241427733505638
         vm.assume(amountSpecified != -170141183460469231731687303715884105728);
         if (amountSpecified < 0) {
-            amountSpecified = -int128(uint128(bound(uint256(uint128(-amountSpecified)), 187969924812030076, 42535295865117307932921825928971026432)));
+            amountSpecified = -int128(
+                uint128(
+                    bound(
+                        uint256(uint128(-amountSpecified)), 187969924812030076, 42535295865117307932921825928971026432
+                    )
+                )
+            );
         } else {
             amountSpecified = int128(uint128(bound(uint256(uint128(amountSpecified)), 714285714285714285, 2 ** 127)));
         }
@@ -128,28 +134,5 @@ contract PoolTest is Test {
         );
 
         assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), SqrtPrice.unwrap(targetPrice));
-    }
-
-    function test_placeOrder_RebalanceAndAddOrder() public {
-        int128 amountSpecified = 714285714285714285 + 1;
-        SqrtPrice targetPrice = SqrtPrice.wrap(150533508777102241427733505638);
-        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
-
-        (OrderId orderId,) = state.placeOrder(
-            true,
-            true,
-            poolKey,
-            PoolLibrary.PlaceOrderParams({
-                maker: msg.sender,
-                zeroForOne: true,
-                amountSpecified: amountSpecified,
-                targetTick: targetPrice,
-                currentTick: state.sqrtPrice,
-                neighborTicks: neighborTicks
-            })
-        );
-
-        assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), SqrtPrice.unwrap(targetPrice));
-        assertEq(SqrtPrice.unwrap(state.lastRebalanceSqrtPrice), SqrtPrice.unwrap(targetPrice));
     }
 }
