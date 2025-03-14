@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {SqrtPrice, SqrtPriceLibrary} from "../../src/models/SqrtPrice.sol";
-import {console} from "forge-std/console.sol";
 
 contract SqrtPriceTest is Test {
     int32 constant MIN_TICK = SqrtPriceLibrary.MIN_TICK;

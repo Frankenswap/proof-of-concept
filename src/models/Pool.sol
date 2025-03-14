@@ -15,8 +15,6 @@ import {OrderId} from "./OrderId.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 import {SwapFlag, SwapFlagLibrary} from "./SwapFlag.sol";
 
-import {console} from "forge-std/console.sol";
-
 struct Pool {
     uint128 reserve0;
     uint128 reserve1;
