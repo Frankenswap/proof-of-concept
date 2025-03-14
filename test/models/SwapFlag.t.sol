@@ -8,14 +8,14 @@ contract SwapFlagTest is Test {
     function test_SwapFlag() public pure {
         SwapFlag flag = SwapFlag.wrap(uint8(1));
         vm.assertTrue(flag.isFilOrderFlag());
-        vm.assertFalse(flag.isRebalanceFlag());
         vm.assertFalse(flag.isAddOrderFlag());
+
+        flag = SwapFlag.wrap(uint8(2));
+        vm.assertFalse(flag.isFilOrderFlag());
+        vm.assertTrue(flag.isAddOrderFlag());
 
         flag = SwapFlag.wrap(uint8(3));
-        vm.assertTrue(flag.isRebalanceFlag());
-        vm.assertFalse(flag.isAddOrderFlag());
-
-        flag = SwapFlag.wrap(uint8(4));
+        vm.assertTrue(flag.isFilOrderFlag());
         vm.assertTrue(flag.isAddOrderFlag());
     }
 

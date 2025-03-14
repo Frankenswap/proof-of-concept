@@ -213,23 +213,15 @@ library FullMath {
         }
     }
 
-    function min(uint160 a, uint160 b, uint160 c) internal pure returns (uint160 z) {
-        // TODO: Optimize (ternary)
+    function min(uint160 x, uint160 y) internal pure returns (uint160 z) {
         assembly {
-            switch lt(a, b)
-            case true { z := a }
-            default { z := b }
-            if lt(c, z) { z := c }
+            z := xor(x, mul(xor(x, y), lt(y, x)))
         }
     }
 
-    function max(uint160 a, uint160 b, uint160 c) internal pure returns (uint160 z) {
-        // TODO: Optimize (ternary)
+    function max(uint160 x, uint160 y) internal pure returns (uint160 z) {
         assembly {
-            switch gt(a, b)
-            case true { z := a }
-            default { z := b }
-            if gt(c, z) { z := c }
+            z := xor(x, mul(xor(x, y), gt(y, x)))
         }
     }
 }
