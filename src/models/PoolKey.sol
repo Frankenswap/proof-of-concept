@@ -34,6 +34,12 @@ library PoolKeyLibrary {
         }
     }
 
+    function memToId(PoolKey memory poolKey) internal pure returns (PoolId poolId) {
+        assembly ("memory-safe") {
+            poolId := keccak256(poolKey, 0x60)
+        }
+    }
+
     /// @notice Validate the pool key
     /// @param self The pool key
     function validate(PoolKey memory self) internal pure {
