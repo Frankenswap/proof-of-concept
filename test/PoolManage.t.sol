@@ -23,7 +23,7 @@ contract PoolManageTest is Test {
     function setUp() public {
         config = new MockConfig();
         manager = new PoolManager();
-        config.setArgs(address(0xBEEF1), address(0xBEEF2), 0.93e6, 1.07e6, 0.95e6, 1.05e6, 1);
+        config.setArgs(address(0xBEEF1), address(0xBEEF2), 0.93e6, 1.07e6, 1);
     }
 
     function test_pool_initialize() public {

@@ -20,7 +20,7 @@ contract PoolTest is Test {
 
     function setUp() public {
         config = new MockConfig();
-        config.setArgs(address(0xBEEF1), address(0xBEEF2), 0.93e6, 1.07e6, 0.95e6, 1.05e6, 1);
+        config.setArgs(address(0xBEEF1), address(0xBEEF2), 0.93e6, 1.07e6, 1);
 
         SqrtPrice sqrtPrice = SqrtPrice.wrap(2 << 96);
         poolKey = PoolKey({token0: Token.wrap(address(0xBEEF1)), token1: Token.wrap(address(0xBEEF2)), configs: config});
@@ -41,7 +41,6 @@ contract PoolTest is Test {
         (OrderId orderId,) = state.placeOrder(
             true,
             true,
-            poolKey,
             PoolLibrary.PlaceOrderParams({
                 maker: msg.sender,
                 zeroForOne: true,
@@ -86,7 +85,6 @@ contract PoolTest is Test {
         (OrderId orderId,) = state.placeOrder(
             true,
             true,
-            poolKey,
             PoolLibrary.PlaceOrderParams({
                 maker: msg.sender,
                 zeroForOne: true,
@@ -104,7 +102,13 @@ contract PoolTest is Test {
         // thresholdRatioPrice = 150533508777102241427733505638
         vm.assume(amountSpecified != -170141183460469231731687303715884105728);
         if (amountSpecified < 0) {
-            amountSpecified = -int128(uint128(bound(uint256(uint128(-amountSpecified)), 187969924812030076, 42535295865117307932921825928971026432)));
+            amountSpecified = -int128(
+                uint128(
+                    bound(
+                        uint256(uint128(-amountSpecified)), 187969924812030076, 42535295865117307932921825928971026432
+                    )
+                )
+            );
         } else {
             amountSpecified = int128(uint128(bound(uint256(uint128(amountSpecified)), 714285714285714285, 2 ** 127)));
         }
@@ -116,7 +120,6 @@ contract PoolTest is Test {
         (OrderId orderId,) = state.placeOrder(
             true,
             true,
-            poolKey,
             PoolLibrary.PlaceOrderParams({
                 maker: msg.sender,
                 zeroForOne: true,
@@ -128,28 +131,5 @@ contract PoolTest is Test {
         );
 
         assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), SqrtPrice.unwrap(targetPrice));
-    }
-
-    function test_placeOrder_RebalanceAndAddOrder() public {
-        int128 amountSpecified = 714285714285714285 + 1;
-        SqrtPrice targetPrice = SqrtPrice.wrap(150533508777102241427733505638);
-        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
-
-        (OrderId orderId,) = state.placeOrder(
-            true,
-            true,
-            poolKey,
-            PoolLibrary.PlaceOrderParams({
-                maker: msg.sender,
-                zeroForOne: true,
-                amountSpecified: amountSpecified,
-                targetTick: targetPrice,
-                currentTick: state.sqrtPrice,
-                neighborTicks: neighborTicks
-            })
-        );
-
-        assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), SqrtPrice.unwrap(targetPrice));
-        assertEq(SqrtPrice.unwrap(state.lastRebalanceSqrtPrice), SqrtPrice.unwrap(targetPrice));
     }
 }
