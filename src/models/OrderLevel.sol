@@ -6,7 +6,7 @@ import {OrderId, OrderIdLibrary} from "./OrderId.sol";
 import {SqrtPrice} from "./SqrtPrice.sol";
 import {Price, PriceLibrary} from "./Price.sol";
 import {BalanceDelta, toBalanceDelta} from "./BalanceDelta.sol";
-import {SafeCast} from "../library/SafeCast.sol";
+import {SafeCast} from "../libraries/SafeCast.sol";
 import {PoolLibrary} from "./Pool.sol";
 
 struct OrderLevel {
