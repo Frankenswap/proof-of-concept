@@ -9,7 +9,7 @@ import {Order} from "../../src/models/Order.sol";
 import {PoolLibrary} from "../../src/models/Pool.sol";
 import {OrderId, OrderIdLibrary} from "../../src/models/OrderId.sol";
 import {BalanceDelta, toBalanceDelta} from "../../src/models/BalanceDelta.sol";
-import {FullMath} from "../../src/library/FullMath.sol";
+import {FullMath} from "../../src/libraries/FullMath.sol";
 
 contract OrderLevelTest is Test {
     using OrderLevelLibrary for mapping(SqrtPrice => OrderLevel);
