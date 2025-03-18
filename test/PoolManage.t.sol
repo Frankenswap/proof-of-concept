@@ -12,6 +12,7 @@ import {Token} from "../src/models/Token.sol";
 import {OrderId} from "../src/models/OrderId.sol";
 import {BalanceDelta, toBalanceDelta} from "../src/models/BalanceDelta.sol";
 import {PoolId} from "../src/models/PoolId.sol";
+import {FullMath} from "../src/libraries/FullMath.sol";
 
 contract PoolManageTest is Test {
     MockConfig private config;
@@ -36,45 +37,16 @@ contract PoolManageTest is Test {
         assertEq(BalanceDelta.unwrap(balanceDelta), BalanceDelta.unwrap(toBalanceDelta(-233644859813084113, -1 ether)));
     }
 
-    // TODO: not needed?
-    // function test_fuzz_pool_initialize(SqrtPrice sqrtPrice) public {
-    //     sqrtPrice = SqrtPrice.wrap(uint160(bound(SqrtPrice.unwrap(sqrtPrice), MIN_SQRT_PRICE, MAX_SQRT_PRICE)));
+    function test_fuzz_pool_initialize(SqrtPrice sqrtPrice, uint128 shares) public {
+        sqrtPrice = SqrtPrice.wrap(uint160(bound(SqrtPrice.unwrap(sqrtPrice), MIN_SQRT_PRICE, MAX_SQRT_PRICE)));
+        // L < 2 ** 223 / (0.07 * sqrtP)
+        shares = uint128(bound(shares, 1, 192571047622504556278911350033275412326452574890386378269140767997952 / SqrtPrice.unwrap(sqrtPrice)));
+        // L < 2 ** 31 * sqrtP * 1.07 / 0.07
+        shares = uint128(bound(shares, 1, 32825821476 * uint256(SqrtPrice.unwrap(sqrtPrice))));
+        
+        PoolKey memory poolKey =
+            PoolKey({token0: Token.wrap(address(0xBEEF1)), token1: Token.wrap(address(0xBEEF2)), configs: config});
 
-    //     // To liquidityUpper overflow:
-    //     // amount0Desired * 1.07p / 0.07 sqrtP < type(uint128).max
-    //     // amount0Desired * 16 * sqrtP < type(uint128).max (1.07 / 0.07 = 16)
-    //     // amount0Desired * sqrtP < 2 ** 220
-
-    //     // To liquidityUpper underflow:
-    //     // amount0Desired * 1.07p / 0.07 sqrtP > 1(2 ** 96)
-    //     // amount0Desired * 16 * sqrtP > 2 ** 96
-    //     // uint256(amount0Desired) * 16 * sqrtP > 2 ** 96
-    //     uint128 amount0Desired = uint128(
-    //         bound(
-    //             SqrtPrice.unwrap(sqrtPrice),
-    //             2 ** 92 / SqrtPrice.unwrap(sqrtPrice),
-    //             2 ** 220 / SqrtPrice.unwrap(sqrtPrice)
-    //         )
-    //     ) / 2;
-
-    //     // To liquidityLower overflow:
-    //     // amount1Desired * 2 ** 96 / 0.07 sqrtP < 2 ** 127
-    //     // amount1Desired < 0.07 * sqrtP * 2 ** 31
-
-    //     // To liquidityLower underflow:
-    //     // amount1Desired * 2 ** 96 / 0.07 sqrtP > 0
-    //     // amount1Desired > 0.07 * sqrtP
-    //     uint128 amount1Desired = uint128(
-    //         bound(
-    //             type(uint160).max - SqrtPrice.unwrap(sqrtPrice),
-    //             uint256(SqrtPrice.unwrap(sqrtPrice)) * 7 / 100 / 2 ** 96,
-    //             uint256(SqrtPrice.unwrap(sqrtPrice)) * 2 ** 31 * 7 / 100
-    //         )
-    //     ) / 2;
-
-    //     PoolKey memory poolKey =
-    //         PoolKey({token0: Token.wrap(address(0xBEEF1)), token1: Token.wrap(address(0xBEEF2)), configs: config});
-
-    //     manager.initialize(poolKey, sqrtPrice, amount0Desired, amount1Desired);
-    // }
+        manager.initialize(poolKey, sqrtPrice, shares);
+    }
 }
