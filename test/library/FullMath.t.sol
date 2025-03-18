@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {FullMath} from "../../src/library/FullMath.sol";
+import {FullMath} from "../../src/libraries/FullMath.sol";
 
 contract FullMathTest is Test {
     function fullMulDivN(uint256 x, uint256 y, uint8 n) internal pure returns (uint256 z) {

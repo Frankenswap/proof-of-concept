@@ -9,7 +9,7 @@ import {MockConfig} from "../utils/Config.sol";
 import {Token} from "../../src/models/Token.sol";
 import {OrderId} from "../../src/models/OrderId.sol";
 import {Price, PriceLibrary} from "../../src/models/Price.sol";
-import {FullMath} from "../../src/library/FullMath.sol";
+import {FullMath} from "../../src/libraries/FullMath.sol";
 
 contract PoolTest is Test {
     using PoolLibrary for Pool;
@@ -25,7 +25,7 @@ contract PoolTest is Test {
         SqrtPrice sqrtPrice = SqrtPrice.wrap(2 << 96);
         poolKey = PoolKey({token0: Token.wrap(address(0xBEEF1)), token1: Token.wrap(address(0xBEEF2)), configs: config});
 
-        state.initialize(poolKey, sqrtPrice, 1 ether, 1 ether);
+        state.initialize(poolKey, sqrtPrice, 7142857142857142857);
     }
 
     function test_fuzz_placeOrder_directPlaceOrder(int128 amountSpecified) public {
