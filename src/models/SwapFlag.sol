@@ -10,24 +10,16 @@ using SwapFlagLibrary for SwapFlag global;
 
 library SwapFlagLibrary {
     // TODO: zeroForOne
-    function toFlag(SqrtPrice bestPrice, SqrtPrice targetPrice, SqrtPrice thresholdRatioPrice, bool zeroForOne)
+    function toFlag(SqrtPrice bestPrice, SqrtPrice targetPrice, bool zeroForOne)
         internal
         pure
         returns (SqrtPrice nextPrice, SwapFlag flag)
     {
         if (zeroForOne) {
             // Price Down
-            nextPrice = SqrtPrice.wrap(
-                FullMath.max(
-                    SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice), SqrtPrice.unwrap(thresholdRatioPrice)
-                )
-            );
+            nextPrice = SqrtPrice.wrap(FullMath.max(SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice)));
         } else {
-            nextPrice = SqrtPrice.wrap(
-                FullMath.min(
-                    SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice), SqrtPrice.unwrap(thresholdRatioPrice)
-                )
-            );
+            nextPrice = SqrtPrice.wrap(FullMath.min(SqrtPrice.unwrap(bestPrice), SqrtPrice.unwrap(targetPrice)));
         }
 
         // fil order => min price = best price
@@ -39,12 +31,8 @@ library SwapFlagLibrary {
                 rawFlag += 1;
             }
 
-            if (nextPrice == thresholdRatioPrice) {
-                rawFlag += 2;
-            }
-
             if (nextPrice == targetPrice) {
-                rawFlag += 4;
+                rawFlag += 2;
             }
         }
 
@@ -57,15 +45,9 @@ library SwapFlagLibrary {
         }
     }
 
-    function isRebalanceFlag(SwapFlag flag) internal pure returns (bool rebalance) {
-        assembly ("memory-safe") {
-            rebalance := and(flag, 2)
-        }
-    }
-
     function isAddOrderFlag(SwapFlag flag) internal pure returns (bool addOrder) {
-        assembly ("memory-safe") {
-            addOrder := and(flag, 4)
+        assembly {
+            addOrder := and(flag, 2)
         }
     }
 }

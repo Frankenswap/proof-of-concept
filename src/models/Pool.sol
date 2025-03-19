@@ -15,18 +15,13 @@ import {OrderId} from "./OrderId.sol";
 import {OrderLevel, OrderLevelLibrary} from "./OrderLevel.sol";
 import {SwapFlag, SwapFlagLibrary} from "./SwapFlag.sol";
 
-import {console} from "forge-std/console.sol";
-
 struct Pool {
     uint128 reserve0;
     uint128 reserve1;
     IShareToken shareToken;
     SqrtPrice sqrtPrice;
-    SqrtPrice lastRebalanceSqrtPrice;
     uint24 rangeRatioLower;
     uint24 rangeRatioUpper;
-    uint24 thresholdRatioLower;
-    uint24 thresholdRatioUpper;
     SqrtPrice bestAsk;
     SqrtPrice bestBid;
     mapping(SqrtPrice => OrderLevel) orderLevels;
@@ -65,13 +60,8 @@ library PoolLibrary {
         require(!self.isInitialized(), PoolAlreadyInitialized());
         require(SqrtPrice.unwrap(sqrtPrice) != 0, SqrtPriceCannotBeZero());
 
-        (
-            uint24 rangeRatioLower,
-            uint24 rangeRatioUpper,
-            uint24 thresholdRatioLower,
-            uint24 thresholdRatioUpper,
-            uint32 minShares
-        ) = poolKey.configs.initialize(poolKey.token0, poolKey.token1, sqrtPrice);
+        (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint32 minShares) =
+            poolKey.configs.initialize(poolKey.token0, poolKey.token1, sqrtPrice);
         // TODO: validate returned values
 
         shareToken = new ShareToken{salt: PoolId.unwrap(poolKey.memToId())}();
@@ -92,11 +82,8 @@ library PoolLibrary {
         self.reserve1 = amount1.toUint128();
         self.shareToken = shareToken;
         self.sqrtPrice = sqrtPrice;
-        self.lastRebalanceSqrtPrice = sqrtPrice;
         self.rangeRatioLower = rangeRatioLower;
         self.rangeRatioUpper = rangeRatioUpper;
-        self.thresholdRatioLower = thresholdRatioLower;
-        self.thresholdRatioUpper = thresholdRatioUpper;
         // ask > bid
         self.bestAsk = SqrtPrice.wrap(type(uint160).max);
         self.bestBid = SqrtPrice.wrap(0);
@@ -104,19 +91,6 @@ library PoolLibrary {
 
         shareToken.mint(address(0), minShares);
         shareToken.mint(msg.sender, shares - minShares);
-    }
-
-    function rebalance(Pool storage self, SqrtPrice sqrtPrice, PoolKey memory poolKey)
-        internal
-        returns (uint24 rangeRatioLower, uint24 rangeRatioUpper, uint24 thresholdRatioLower, uint24 thresholdRatioUpper)
-    {
-        (rangeRatioLower, rangeRatioUpper, thresholdRatioLower, thresholdRatioUpper) =
-            poolKey.configs.rebalance(poolKey.token0, poolKey.token1, sqrtPrice);
-
-        self.rangeRatioLower = rangeRatioLower;
-        self.rangeRatioUpper = rangeRatioUpper;
-        self.thresholdRatioLower = thresholdRatioLower;
-        self.thresholdRatioUpper = thresholdRatioUpper;
     }
 
     function modifyReserves(Pool storage self, int128 sharesDelta) internal returns (BalanceDelta balanceDelta) {
@@ -150,9 +124,7 @@ library PoolLibrary {
     struct StepComputations {
         SqrtPrice sqrtPrice;
         SqrtPrice bestPrice;
-        SqrtPrice lastRebalanceSqrtPrice;
         SqrtPrice rangeRatioPrice;
-        SqrtPrice thresholdRatioPrice;
         uint128 liquidity;
         uint256 amountIn;
         uint256 amountOut;
@@ -176,20 +148,18 @@ library PoolLibrary {
         Pool storage self,
         bool partiallyFillable,
         bool goodTillCancelled,
-        PoolKey memory poolKey, // TODO: calldata
         PlaceOrderParams memory params
     ) internal returns (OrderId orderId, BalanceDelta balanceDelta) {
         StepComputations memory step;
 
         step.sqrtPrice = self.sqrtPrice;
-        step.lastRebalanceSqrtPrice = self.lastRebalanceSqrtPrice;
         step.reserve0 = self.reserve0;
         step.reserve1 = self.reserve1;
 
         int256 amountSpecifiedRemaining = params.amountSpecified;
         int256 amountCalculated = 0;
 
-        // zeroForOne -> Price Down -> targetTick / bestBid / thresholdRatioLower
+        // zeroForOne -> Price Down -> targetTick / bestBid
         if (params.zeroForOne) {
             step.bestPrice = self.bestBid;
             if (step.sqrtPrice < params.targetTick) {
@@ -205,22 +175,15 @@ library PoolLibrary {
                     revert MustPlaceOrder();
                 }
             } else {
-                step.thresholdRatioPrice = SqrtPrice.wrap(
-                    FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.thresholdRatioLower, 1e6)
-                        .toUint160()
-                );
-
                 step.rangeRatioPrice = SqrtPrice.wrap(
-                    FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), self.rangeRatioLower, 1e6).toUint160(
-                    )
+                    FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.rangeRatioLower, 1e6).toUint160()
                 );
 
                 // TODO: While loop to swap
 
                 // next price and flag
-                (SqrtPrice targetPrice, SwapFlag flag) = SwapFlagLibrary.toFlag(
-                    step.bestPrice, params.targetTick, step.thresholdRatioPrice, params.zeroForOne
-                );
+                (SqrtPrice targetPrice, SwapFlag flag) =
+                    SwapFlagLibrary.toFlag(step.bestPrice, params.targetTick, params.zeroForOne);
 
                 // Liquidity
                 step.liquidity = LiquidityMath.getLiquidityLower(step.sqrtPrice, step.rangeRatioPrice, self.reserve1);
@@ -259,21 +222,6 @@ library PoolLibrary {
                         }
 
                         balanceDelta = balanceDelta + delta;
-                    }
-
-                    // If RebalanceFlag, rebalance
-                    if (flag.isRebalanceFlag()) {
-                        (uint24 rangeRatioLower,, uint24 thresholdRatioLower,) = self.rebalance(step.sqrtPrice, poolKey);
-                        step.lastRebalanceSqrtPrice = step.sqrtPrice;
-                        step.thresholdRatioPrice = SqrtPrice.wrap(
-                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), thresholdRatioLower, 1e6)
-                                .toUint160()
-                        );
-
-                        step.rangeRatioPrice = SqrtPrice.wrap(
-                            FullMath.mulDiv(SqrtPrice.unwrap(step.lastRebalanceSqrtPrice), rangeRatioLower, 1e6)
-                                .toUint160()
-                        );
                     }
 
                     // If AddOrderFlag, add order

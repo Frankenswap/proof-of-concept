@@ -20,7 +20,7 @@ contract PoolTest is Test {
 
     function setUp() public {
         config = new MockConfig();
-        config.setArgs(address(0xBEEF1), address(0xBEEF2), 0.93e6, 1.07e6, 0.95e6, 1.05e6, 1);
+        config.setArgs(address(0xBEEF1), address(0xBEEF2), 0.93e6, 1.07e6, 1);
 
         SqrtPrice sqrtPrice = SqrtPrice.wrap(2 << 96);
         poolKey = PoolKey({token0: Token.wrap(address(0xBEEF1)), token1: Token.wrap(address(0xBEEF2)), configs: config});
@@ -41,7 +41,6 @@ contract PoolTest is Test {
         (OrderId orderId,) = state.placeOrder(
             true,
             true,
-            poolKey,
             PoolLibrary.PlaceOrderParams({
                 maker: msg.sender,
                 zeroForOne: true,
@@ -86,7 +85,6 @@ contract PoolTest is Test {
         (OrderId orderId,) = state.placeOrder(
             true,
             true,
-            poolKey,
             PoolLibrary.PlaceOrderParams({
                 maker: msg.sender,
                 zeroForOne: true,
@@ -122,7 +120,6 @@ contract PoolTest is Test {
         (OrderId orderId,) = state.placeOrder(
             true,
             true,
-            poolKey,
             PoolLibrary.PlaceOrderParams({
                 maker: msg.sender,
                 zeroForOne: true,

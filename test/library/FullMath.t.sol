@@ -81,17 +81,15 @@ contract FullMathTest is Test {
         assertEq(result2, 3127142212820248285282886819185066);
     }
 
-    function test_fuzz_min(uint160 x, uint160 y, uint160 z) public pure {
-        uint160 minValue = FullMath.min(x, y, z);
-        assertLe(minValue, x);
-        assertLe(minValue, y);
-        assertLe(minValue, z);
+    function test_fuzz_min(uint160 x, uint160 y) public pure {
+        uint160 z = FullMath.min(x, y);
+        assertLe(z, x);
+        assertLe(z, y);
     }
 
-    function test_fuzz_max(uint160 x, uint160 y, uint160 z) public pure {
-        uint160 maxValue = FullMath.max(x, y, z);
-        assertGe(maxValue, x);
-        assertGe(maxValue, y);
-        assertGe(maxValue, z);
+    function test_fuzz_max(uint160 x, uint160 y) public pure {
+        uint160 z = FullMath.max(x, y);
+        assertGe(z, x);
+        assertGe(z, y);
     }
 }
