@@ -40,10 +40,16 @@ contract PoolManageTest is Test {
     function test_fuzz_pool_initialize(SqrtPrice sqrtPrice, uint128 shares) public {
         sqrtPrice = SqrtPrice.wrap(uint160(bound(SqrtPrice.unwrap(sqrtPrice), MIN_SQRT_PRICE, MAX_SQRT_PRICE)));
         // L < 2 ** 223 / (0.07 * sqrtP)
-        shares = uint128(bound(shares, 1, 192571047622504556278911350033275412326452574890386378269140767997952 / SqrtPrice.unwrap(sqrtPrice)));
+        shares = uint128(
+            bound(
+                shares,
+                1,
+                192571047622504556278911350033275412326452574890386378269140767997952 / SqrtPrice.unwrap(sqrtPrice)
+            )
+        );
         // L < 2 ** 31 * sqrtP * 1.07 / 0.07
         shares = uint128(bound(shares, 1, 32825821476 * uint256(SqrtPrice.unwrap(sqrtPrice))));
-        
+
         PoolKey memory poolKey =
             PoolKey({token0: Token.wrap(address(0xBEEF1)), token1: Token.wrap(address(0xBEEF2)), configs: config});
 
