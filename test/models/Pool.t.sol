@@ -99,38 +99,38 @@ contract PoolTest is Test {
         assertGe(SqrtPrice.unwrap(state.sqrtPrice), SqrtPrice.unwrap(targetPrice));
     }
 
-    // function test_placeOrder_AddOrder(int128 amountSpecified) public {
-    //     // thresholdRatioPrice = 150533508777102241427733505638
-    //     vm.assume(amountSpecified != -170141183460469231731687303715884105728);
-    //     if (amountSpecified < 0) {
-    //         amountSpecified = -int128(
-    //             uint128(
-    //                 bound(
-    //                     uint256(uint128(-amountSpecified)), 187969924812030076, 42535295865117307932921825928971026432
-    //                 )
-    //             )
-    //         );
-    //     } else {
-    //         amountSpecified = int128(uint128(bound(uint256(uint128(amountSpecified)), 714285714285714285, 2 ** 127)));
-    //     }
+    function test_placeOrder_AddOrder(int128 amountSpecified) public {
+        // thresholdRatioPrice = 150533508777102241427733505638
+        vm.assume(amountSpecified != -170141183460469231731687303715884105728);
+        if (amountSpecified < 0) {
+            amountSpecified = -int128(
+                uint128(
+                    bound(
+                        uint256(uint128(-amountSpecified)), 187969924812030076, 42535295865117307932921825928971026432
+                    )
+                )
+            );
+        } else {
+            amountSpecified = int128(uint128(bound(uint256(uint128(amountSpecified)), 714285714285714285, 2 ** 127)));
+        }
 
-    //     SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
+        SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
-    //     SqrtPrice targetPrice = SqrtPrice.wrap(150533508777102241427733505639);
+        SqrtPrice targetPrice = SqrtPrice.wrap(158456325028528675187087900671);
 
-    //     (OrderId orderId,) = state.placeOrder(
-    //         true,
-    //         true,
-    //         PoolLibrary.PlaceOrderParams({
-    //             maker: msg.sender,
-    //             zeroForOne: true,
-    //             amountSpecified: amountSpecified,
-    //             targetTick: targetPrice,
-    //             currentTick: state.sqrtPrice,
-    //             neighborTicks: neighborTicks
-    //         })
-    //     );
+        (OrderId orderId,) = state.placeOrder(
+            true,
+            true,
+            PoolLibrary.PlaceOrderParams({
+                maker: msg.sender,
+                zeroForOne: true,
+                amountSpecified: amountSpecified,
+                targetTick: targetPrice,
+                currentTick: state.sqrtPrice,
+                neighborTicks: neighborTicks
+            })
+        );
 
-    //     assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), SqrtPrice.unwrap(targetPrice));
-    // }
+        assertEq(SqrtPrice.unwrap(orderId.sqrtPrice()), SqrtPrice.unwrap(targetPrice));
+    }
 }
