@@ -12,6 +12,9 @@ import {Token} from "../models/Token.sol";
 
 /// @title IPoolManager
 interface IPoolManager {
+    /// @notice Thrown when remove the order is not made by the order maker
+    error MustOrderMaker();
+
     /// @notice Emitted when a new pool is initialized
     /// @param token0 The first token
     /// @param token1 The second token

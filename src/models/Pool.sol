@@ -299,6 +299,13 @@ library PoolLibrary {
         }
     }
 
+    function removeOrder(Pool storage self, OrderId orderId)
+        internal
+        returns (address orderMaker, BalanceDelta balanceDelta)
+    {
+        (orderMaker, balanceDelta) = self.orderLevels.removeOrder(orderId);
+    }
+
     function isInitialized(Pool storage self) internal view returns (bool) {
         return SqrtPrice.unwrap(self.sqrtPrice) != 0 && address(self.shareToken) != address(0);
     }

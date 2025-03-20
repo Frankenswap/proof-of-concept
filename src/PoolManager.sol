@@ -76,6 +76,11 @@ contract PoolManager is IPoolManager {
         validatePoolKey(poolKey)
         returns (BalanceDelta balanceDelta)
     {
-        // TODO: Implement
+        address orderMaker;
+        PoolId poolId = poolKey.toId();
+
+        (, balanceDelta) = _pools[poolId].removeOrder(orderId);
+
+        require(orderMaker == msg.sender, MustOrderMaker());
     }
 }
