@@ -181,7 +181,6 @@ library PoolLibrary {
             if (goodTillCancelled) {
                 uint256 orderAmount;
                 (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
-
                 // update order best ask
                 if (params.targetTick < self.bestAsk) {
                     self.bestAsk = params.targetTick;
@@ -191,6 +190,8 @@ library PoolLibrary {
                     orderSpecifiedRemaining += orderAmount.toInt256();
                     orderAmountCalculated -= step.amountIn.toInt256();
                 }
+
+                amountSpecifiedRemaining = 0;
             } else {
                 // TODO: Revert Err
                 revert MustPlaceOrder();
