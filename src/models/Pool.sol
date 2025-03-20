@@ -125,7 +125,6 @@ library PoolLibrary {
         SqrtPrice sqrtPrice;
         SqrtPrice bestPrice;
         SqrtPrice rangeRatioPrice;
-        uint128 liquidity;
         uint256 amountIn;
         uint256 amountOut;
         uint128 reserve0;
@@ -163,46 +162,77 @@ library PoolLibrary {
         int256 orderSpecifiedRemaining = 0;
         int256 orderAmountCalculated = 0;
 
+        // Liquidity
+        SqrtPrice sqrtPriceLower =
+            SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.rangeRatioLower, 1e6).toUint160());
+        SqrtPrice sqrtPriceUpper =
+            SqrtPrice.wrap(FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.rangeRatioUpper, 1e6).toUint160());
+        uint128 liquidityLower = LiquidityMath.getLiquidityLower(step.sqrtPrice, sqrtPriceLower, step.reserve1);
+        uint128 liquidityUpper = LiquidityMath.getLiquidityUpper(step.sqrtPrice, sqrtPriceUpper, step.reserve0);
+
+        uint128 liquidity = liquidityLower > liquidityUpper ? liquidityUpper : liquidityLower;
+
         // zeroForOne -> Price Down -> targetTick / bestBid
-        if (zeroForOne) {
-            step.bestPrice = self.bestBid;
-            if (step.sqrtPrice < params.targetTick) {
-                // partially fillable
-                if (goodTillCancelled) {
-                    uint256 orderAmount;
-                    (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
+        // read best price
+        step.bestPrice = zeroForOne ? self.bestBid : self.bestAsk;
 
-                    // update order best ask
-                    if (params.targetTick < self.bestAsk) {
-                        self.bestAsk = params.targetTick;
-                    }
+        if (zeroForOne == (step.sqrtPrice < params.targetTick)) {
+            // partially fillable
+            if (goodTillCancelled) {
+                uint256 orderAmount;
+                (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
 
-                    if (params.amountSpecified >= 0) {
-                        orderSpecifiedRemaining += orderAmount.toInt256();
-                        orderAmountCalculated -= step.amountIn.toInt256();
-                    }
-                } else {
-                    // TODO: Revert Err
-                    revert MustPlaceOrder();
+                // update order best ask
+                if (params.targetTick < self.bestAsk) {
+                    self.bestAsk = params.targetTick;
+                }
+
+                if (params.amountSpecified >= 0) {
+                    orderSpecifiedRemaining += orderAmount.toInt256();
+                    orderAmountCalculated -= step.amountIn.toInt256();
                 }
             } else {
-                step.rangeRatioPrice = SqrtPrice.wrap(
-                    FullMath.mulDiv(SqrtPrice.unwrap(step.sqrtPrice), self.rangeRatioLower, 1e6).toUint160()
-                );
+                // TODO: Revert Err
+                revert MustPlaceOrder();
+            }
+        }
 
-                // TODO: liquidity lower and upper -> min
-                // TODO: liquidity in stack
-                // Liquidity
-                step.liquidity = LiquidityMath.getLiquidityLower(step.sqrtPrice, step.rangeRatioPrice, step.reserve1);
+        while (!(amountSpecifiedRemaining == 0 || step.sqrtPrice == params.targetTick)) {
+            // next price and flag
+            (SqrtPrice targetPrice, SwapFlag flag) =
+                SwapFlagLibrary.toFlag(step.bestPrice, params.targetTick, zeroForOne);
 
-                while (!(amountSpecifiedRemaining == 0 || step.sqrtPrice == params.targetTick)) {
-                    // next price and flag
-                    (SqrtPrice targetPrice, SwapFlag flag) =
-                        SwapFlagLibrary.toFlag(step.bestPrice, params.targetTick, zeroForOne);
+            // Compute Swap
+            (step.sqrtPrice, step.amountIn, step.amountOut) =
+                LiquidityMath.computeSwap(step.sqrtPrice, targetPrice, liquidity, amountSpecifiedRemaining);
 
-                    // Compute Swap
-                    (step.sqrtPrice, step.amountIn, step.amountOut) =
-                        LiquidityMath.computeSwap(step.sqrtPrice, targetPrice, step.liquidity, amountSpecifiedRemaining);
+            unchecked {
+                if (params.amountSpecified > 0) {
+                    amountSpecifiedRemaining -= step.amountOut.toInt256();
+                    amountCalculated -= step.amountIn.toInt256();
+                } else {
+                    amountSpecifiedRemaining += step.amountIn.toInt256();
+                    amountCalculated += step.amountOut.toInt256();
+                }
+
+                step.reserve0 += step.amountIn.toUint128();
+                step.reserve1 -= step.amountOut.toUint128();
+            }
+
+            if (step.sqrtPrice == targetPrice) {
+                // Fill order in orderLevel
+                if (flag.isFilOrderFlag()) {
+                    SqrtPrice sqrtPriceNext;
+                    bool isUpdated;
+
+                    // TODO: Int256
+                    (sqrtPriceNext, step.amountIn, step.amountOut, isUpdated) =
+                        self.orderLevels.fillOrder(zeroForOne, targetPrice, amountSpecifiedRemaining);
+
+                    // Why not use amountSpecifiedRemaining? amountSpecifiedRemaining == orderlevel.totalOpenAmount
+                    if (isUpdated) {
+                        step.bestPrice = sqrtPriceNext;
+                    }
 
                     unchecked {
                         if (params.amountSpecified > 0) {
@@ -212,71 +242,46 @@ library PoolLibrary {
                             amountSpecifiedRemaining += step.amountIn.toInt256();
                             amountCalculated += step.amountOut.toInt256();
                         }
-
-                        step.reserve0 += step.amountIn.toUint128();
-                        step.reserve1 -= step.amountOut.toUint128();
                     }
+                }
 
-                    if (step.sqrtPrice == targetPrice) {
-                        // Fill order in orderLevel
-                        if (flag.isFilOrderFlag()) {
-                            SqrtPrice sqrtPriceNext;
-                            bool isUpdated;
+                if (amountSpecifiedRemaining != 0) {
+                    // If AddOrderFlag, add order
+                    if (flag.isAddOrderFlag()) {
+                        if (partiallyFillable && goodTillCancelled) {
+                            params.amountSpecified = amountSpecifiedRemaining.toInt128();
+                            params.currentTick = step.sqrtPrice;
 
-                            // TODO: Int256
-                            (sqrtPriceNext, step.amountIn, step.amountOut, isUpdated) =
-                                self.orderLevels.fillOrder(zeroForOne, targetPrice, amountSpecifiedRemaining);
+                            uint256 orderAmount;
+                            (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
 
-                            // Why not use amountSpecifiedRemaining? amountSpecifiedRemaining == orderlevel.totalOpenAmount
-                            if (isUpdated) {
-                                step.bestPrice = sqrtPriceNext;
+                            if (params.amountSpecified >= 0) {
+                                orderSpecifiedRemaining += orderAmount.toInt256();
+                                orderAmountCalculated -= step.amountIn.toInt256();
                             }
 
-                            unchecked {
-                                if (params.amountSpecified > 0) {
-                                    amountSpecifiedRemaining -= step.amountOut.toInt256();
-                                    amountCalculated -= step.amountIn.toInt256();
-                                } else {
-                                    amountSpecifiedRemaining += step.amountIn.toInt256();
-                                    amountCalculated += step.amountOut.toInt256();
-                                }
-                            }
-                        }
-
-                        if (amountSpecifiedRemaining != 0) {
-                            // If AddOrderFlag, add order
-                            if (flag.isAddOrderFlag()) {
-                                if (partiallyFillable && goodTillCancelled) {
-                                    params.amountSpecified = amountSpecifiedRemaining.toInt128();
-                                    params.currentTick = step.sqrtPrice;
-
-                                    uint256 orderAmount;
-                                    (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
-
-                                    if (params.amountSpecified >= 0) {
-                                        orderSpecifiedRemaining += orderAmount.toInt256();
-                                        orderAmountCalculated -= step.amountIn.toInt256();
-                                    }
-
-                                    amountSpecifiedRemaining = 0;
-                                    step.bestPrice = step.sqrtPrice;
-                                }
-                            }
+                            amountSpecifiedRemaining = 0;
+                            step.bestPrice = step.sqrtPrice;
                         }
                     }
                 }
             }
-
-            // Maybe optimize: diff to update
-            if (self.bestAsk != step.bestPrice) {
-                self.bestBid = step.bestPrice;
-            }
-        } else {}
+        }
 
         if (self.reserve0 != step.reserve0) {
             self.reserve0 = step.reserve0;
             self.reserve1 = step.reserve1;
             self.sqrtPrice = step.sqrtPrice;
+        }
+        // bestPrice write
+        if (zeroForOne) {
+            if (self.bestAsk != step.bestPrice) {
+                self.bestBid = step.bestPrice;
+            }
+        } else {
+            if (self.bestBid != step.bestPrice) {
+                self.bestAsk = step.bestPrice;
+            }
         }
 
         // "if currency1 is specified"
