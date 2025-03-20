@@ -317,7 +317,7 @@ contract OrderLevelTest is Test {
         (, uint256 amountIn, uint256 amountOut,) =
             ticks.fillOrder(zeroForOne, tick.targetTick, -int128(uint128(tick.amount)) - 1);
 
-        assertEq(amountIn, tick.amount + 1);
+        assertEq(amountIn, uint256(tick.amount) + 1);
         // assertEq(amountOut, 0);
 
         assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 1);
