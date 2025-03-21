@@ -283,11 +283,11 @@ library PoolLibrary {
         // bestPrice write
         if (zeroForOne) {
             if (self.bestAsk != step.bestPrice) {
-                self.bestBid = step.bestPrice;
+                self.bestAsk = step.bestPrice;
             }
         } else {
             if (self.bestBid != step.bestPrice) {
-                self.bestAsk = step.bestPrice;
+                self.bestBid = step.bestPrice;
             }
         }
 
