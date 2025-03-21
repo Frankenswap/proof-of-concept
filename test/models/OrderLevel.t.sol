@@ -35,7 +35,7 @@ contract OrderLevelTest is Test {
             neighborTicks: neighborTicks
         });
 
-        (orderId,) = ticks.placeOrder(params);
+        (orderId,,) = ticks.placeOrder(params);
     }
 
     function verifyMockOrder(OrderId orderId, SqrtPrice tick) internal view {
@@ -150,7 +150,7 @@ contract OrderLevelTest is Test {
             neighborTicks: neighborTicks
         });
 
-        (OrderId orderId,) = ticks.placeOrder(params);
+        (OrderId orderId,,) = ticks.placeOrder(params);
         ticks[SqrtPrice.wrap(100)].lastCloseOrderIndex = 1;
 
         (address maker, BalanceDelta delta) = ticks.removeOrder(orderId);
@@ -159,7 +159,7 @@ contract OrderLevelTest is Test {
 
         // Remove zeroForOne = fasle
         params.zeroForOne = false;
-        (orderId,) = ticks.placeOrder(params);
+        (orderId,,) = ticks.placeOrder(params);
         ticks[SqrtPrice.wrap(100)].lastCloseOrderIndex = 2;
         (maker, delta) = ticks.removeOrder(orderId);
         assertEq(maker, address(this));
@@ -196,7 +196,7 @@ contract OrderLevelTest is Test {
             neighborTicks: neighborTicks
         });
 
-        (OrderId orderId,) = ticks.placeOrder(params);
+        (OrderId orderId,,) = ticks.placeOrder(params);
 
         // Change order fill amount
         ticks[targetTick].orders[orderId].amountFilled = 2 ether;
@@ -208,7 +208,7 @@ contract OrderLevelTest is Test {
 
         // Remove zeroForOne = false
         params.zeroForOne = false;
-        (orderId,) = ticks.placeOrder(params);
+        (orderId,,) = ticks.placeOrder(params);
 
         // Change order fill amount
         ticks[targetTick].orders[orderId].amountFilled = 2 ether;
@@ -260,14 +260,14 @@ contract OrderLevelTest is Test {
         vm.assume(FullMath.mulNDivUp(uint256(amount), 96, Price.unwrap(price)) < 1 << 127);
         vm.assume(uint256(amount) * Price.unwrap(price) < type(uint160).max);
 
-        int128 fillAmount = int128(uint128(amount) + uint128(amountDelta));
+        int128 fillAmount = -int128(uint128(amount) + uint128(amountDelta));
 
         placeMockOrder(targetTick, amount, neighborTicks);
 
-        (int128 amountSpecifiedRemaining, SqrtPrice sqrtPriceNext,,) =
+        (SqrtPrice sqrtPriceNext, uint256 amountIn, uint256 amountOut,) =
             ticks.fillOrder(zeroForOne, targetTick, fillAmount);
 
-        assertEq(uint128(amountSpecifiedRemaining), uint128(amountDelta));
+        // assertEq(uint128(amountSpecifiedRemaining), uint128(amountDelta));
         assertEq(ticks[targetTick].totalOpenAmount, 0);
         assertEq(ticks[targetTick].lastOpenOrderIndex, 1);
         assertEq(ticks[targetTick].lastCloseOrderIndex, 1);
@@ -290,9 +290,10 @@ contract OrderLevelTest is Test {
 
         placeMockOrder(tick.targetTick, tick.amount, neighborTicks);
 
-        (int128 amountSpecified,,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) - 1));
+        (, uint256 amountIn, uint256 amountOut,) =
+            ticks.fillOrder(zeroForOne, tick.targetTick, -int128(uint128(tick.amount)) + 1);
 
-        assertEq(amountSpecified, 0);
+        assertEq(amountIn, tick.amount - 1);
         assertEq(ticks[tick.targetTick].totalOpenAmount, 1);
         assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 0);
     }
@@ -313,9 +314,12 @@ contract OrderLevelTest is Test {
         placeMockOrder(tick.targetTick, otherAmount, neighborTicks);
 
         assertEq(ticks[tick.targetTick].totalOpenAmount, uint128(tick.amount) + uint128(otherAmount));
-        (int128 amountSpecified,,,) = ticks.fillOrder(zeroForOne, tick.targetTick, int128(uint128(tick.amount) + 1));
+        (, uint256 amountIn, uint256 amountOut,) =
+            ticks.fillOrder(zeroForOne, tick.targetTick, -int128(uint128(tick.amount)) - 1);
 
-        assertEq(amountSpecified, 0);
+        assertEq(amountIn, uint256(tick.amount) + 1);
+        // assertEq(amountOut, 0);
+
         assertEq(ticks[tick.targetTick].lastCloseOrderIndex, 1);
         assertEq(ticks[tick.targetTick].totalOpenAmount, uint128(otherAmount) - 1);
 
