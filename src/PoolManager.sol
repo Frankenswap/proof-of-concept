@@ -79,7 +79,7 @@ contract PoolManager is IPoolManager {
         address orderMaker;
         PoolId poolId = poolKey.toId();
 
-        (, balanceDelta) = _pools[poolId].removeOrder(orderId);
+        (orderMaker, balanceDelta) = _pools[poolId].removeOrder(orderId);
 
         require(orderMaker == msg.sender, MustOrderMaker());
     }
