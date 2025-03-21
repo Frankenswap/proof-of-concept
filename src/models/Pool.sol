@@ -182,8 +182,14 @@ library PoolLibrary {
                 uint256 orderAmount;
                 (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
                 // update order best ask
-                if (params.targetTick < self.bestAsk) {
-                    self.bestAsk = params.targetTick;
+                if (zeroForOne) {
+                    if (params.targetTick < self.bestAsk) {
+                        step.bestPrice = params.targetTick;
+                    }
+                } else {
+                    if (params.targetTick > self.bestBid) {
+                        step.bestPrice = params.targetTick;
+                    }
                 }
 
                 if (params.amountSpecified >= 0) {
