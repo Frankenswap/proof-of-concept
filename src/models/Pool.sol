@@ -176,7 +176,7 @@ library PoolLibrary {
         // read best price
         step.bestPrice = zeroForOne ? self.bestBid : self.bestAsk;
 
-        if (zeroForOne == (step.sqrtPrice < params.targetTick)) {
+        if (zeroForOne == (step.sqrtPrice < params.targetTick) && step.sqrtPrice != params.targetTick) {
             // partially fillable
             if (goodTillCancelled) {
                 uint256 orderAmount;
