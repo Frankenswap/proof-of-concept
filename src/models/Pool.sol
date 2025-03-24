@@ -268,6 +268,8 @@ library PoolLibrary {
 
                                 amountSpecifiedRemaining = 0;
                                 step.bestPrice = step.sqrtPrice;
+                            } else {
+                                revert MustPlaceOrder();
                             }
                         }
                     }
