@@ -202,78 +202,78 @@ library PoolLibrary {
                 // TODO: Revert Err
                 revert MustPlaceOrder();
             }
-        }
+        } else {
+            do {
+                // next price and flag
+                (SqrtPrice targetPrice, SwapFlag flag) =
+                    SwapFlagLibrary.toFlag(step.bestPrice, params.targetTick, zeroForOne);
 
-        do {
-            // next price and flag
-            (SqrtPrice targetPrice, SwapFlag flag) =
-                SwapFlagLibrary.toFlag(step.bestPrice, params.targetTick, zeroForOne);
+                // Compute Swap
+                (step.sqrtPrice, step.amountIn, step.amountOut) =
+                    LiquidityMath.computeSwap(step.sqrtPrice, targetPrice, liquidity, amountSpecifiedRemaining);
 
-            // Compute Swap
-            (step.sqrtPrice, step.amountIn, step.amountOut) =
-                LiquidityMath.computeSwap(step.sqrtPrice, targetPrice, liquidity, amountSpecifiedRemaining);
-
-            unchecked {
-                if (params.amountSpecified > 0) {
-                    amountSpecifiedRemaining -= step.amountOut.toInt256();
-                    amountCalculated -= step.amountIn.toInt256();
-                } else {
-                    amountSpecifiedRemaining += step.amountIn.toInt256();
-                    amountCalculated += step.amountOut.toInt256();
-                }
-
-                step.reserve0 += step.amountIn.toUint128();
-                step.reserve1 -= step.amountOut.toUint128();
-            }
-
-            if (step.sqrtPrice == targetPrice) {
-                // Fill order in orderLevel
-                if (flag.isFilOrderFlag()) {
-                    SqrtPrice sqrtPriceNext;
-                    bool isUpdated;
-
-                    // TODO: Int256
-                    (sqrtPriceNext, step.amountIn, step.amountOut, isUpdated) =
-                        self.orderLevels.fillOrder(zeroForOne, targetPrice, amountSpecifiedRemaining);
-
-                    // Why not use amountSpecifiedRemaining? amountSpecifiedRemaining == orderlevel.totalOpenAmount
-                    if (isUpdated) {
-                        step.bestPrice = sqrtPriceNext;
+                unchecked {
+                    if (params.amountSpecified > 0) {
+                        amountSpecifiedRemaining -= step.amountOut.toInt256();
+                        amountCalculated -= step.amountIn.toInt256();
+                    } else {
+                        amountSpecifiedRemaining += step.amountIn.toInt256();
+                        amountCalculated += step.amountOut.toInt256();
                     }
 
-                    unchecked {
-                        if (params.amountSpecified > 0) {
-                            amountSpecifiedRemaining -= step.amountOut.toInt256();
-                            amountCalculated -= step.amountIn.toInt256();
-                        } else {
-                            amountSpecifiedRemaining += step.amountIn.toInt256();
-                            amountCalculated += step.amountOut.toInt256();
+                    step.reserve0 += step.amountIn.toUint128();
+                    step.reserve1 -= step.amountOut.toUint128();
+                }
+
+                if (step.sqrtPrice == targetPrice) {
+                    // Fill order in orderLevel
+                    if (flag.isFilOrderFlag()) {
+                        SqrtPrice sqrtPriceNext;
+                        bool isUpdated;
+
+                        // TODO: Int256
+                        (sqrtPriceNext, step.amountIn, step.amountOut, isUpdated) =
+                            self.orderLevels.fillOrder(zeroForOne, targetPrice, amountSpecifiedRemaining);
+
+                        // Why not use amountSpecifiedRemaining? amountSpecifiedRemaining == orderlevel.totalOpenAmount
+                        if (isUpdated) {
+                            step.bestPrice = sqrtPriceNext;
                         }
-                    }
-                }
 
-                if (amountSpecifiedRemaining != 0) {
-                    // If AddOrderFlag, add order
-                    if (flag.isAddOrderFlag()) {
-                        if (partiallyFillable && goodTillCancelled) {
-                            params.amountSpecified = amountSpecifiedRemaining.toInt128();
-                            params.currentTick = step.sqrtPrice;
-
-                            uint256 orderAmount;
-                            (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
-
-                            if (params.amountSpecified >= 0) {
-                                orderSpecifiedRemaining += orderAmount.toInt256();
-                                orderAmountCalculated -= step.amountIn.toInt256();
+                        unchecked {
+                            if (params.amountSpecified > 0) {
+                                amountSpecifiedRemaining -= step.amountOut.toInt256();
+                                amountCalculated -= step.amountIn.toInt256();
+                            } else {
+                                amountSpecifiedRemaining += step.amountIn.toInt256();
+                                amountCalculated += step.amountOut.toInt256();
                             }
+                        }
+                    }
 
-                            amountSpecifiedRemaining = 0;
-                            step.bestPrice = step.sqrtPrice;
+                    if (amountSpecifiedRemaining != 0) {
+                        // If AddOrderFlag, add order
+                        if (flag.isAddOrderFlag()) {
+                            if (partiallyFillable && goodTillCancelled) {
+                                params.amountSpecified = amountSpecifiedRemaining.toInt128();
+                                params.currentTick = step.sqrtPrice;
+
+                                uint256 orderAmount;
+                                (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
+
+                                if (params.amountSpecified >= 0) {
+                                    orderSpecifiedRemaining += orderAmount.toInt256();
+                                    orderAmountCalculated -= step.amountIn.toInt256();
+                                }
+
+                                amountSpecifiedRemaining = 0;
+                                step.bestPrice = step.sqrtPrice;
+                            }
                         }
                     }
                 }
-            }
-        } while (!(amountSpecifiedRemaining == 0 || step.sqrtPrice == params.targetTick));
+            } while (!(amountSpecifiedRemaining == 0 || step.sqrtPrice == params.targetTick));
+        }
 
         if (self.reserve0 != step.reserve0) {
             self.reserve0 = step.reserve0;
