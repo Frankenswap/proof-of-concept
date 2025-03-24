@@ -243,6 +243,7 @@ library OrderLevelLibrary {
             self[cache.prev].next = cache.next;
             self[cache.next].prev = cache.prev;
 
+            amountIn = cache.totalOpenAmount;
             amountOut =
                 zeroForOne ? price.getAmount1Delta(cache.totalOpenAmount) : price.getAmount0Delta(cache.totalOpenAmount);
         } else {
