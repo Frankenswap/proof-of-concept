@@ -204,7 +204,7 @@ library PoolLibrary {
             }
         }
 
-        while (!(amountSpecifiedRemaining == 0 || step.sqrtPrice == params.targetTick)) {
+        do {
             // next price and flag
             (SqrtPrice targetPrice, SwapFlag flag) =
                 SwapFlagLibrary.toFlag(step.bestPrice, params.targetTick, zeroForOne);
@@ -273,7 +273,7 @@ library PoolLibrary {
                     }
                 }
             }
-        }
+        } while (!(amountSpecifiedRemaining == 0 || step.sqrtPrice == params.targetTick));
 
         if (self.reserve0 != step.reserve0) {
             self.reserve0 = step.reserve0;
