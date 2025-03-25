@@ -41,8 +41,6 @@ library OrderLevelLibrary {
         returns (OrderId orderId, uint256 amountIn, uint256 orderAmount)
     {
         SqrtPrice neighborTick;
-        SqrtPrice neighborPrev;
-        SqrtPrice neighborNext;
         SqrtPrice[] memory neighborTicks = params.neighborTicks;
 
         assembly ("memory-safe") {
@@ -60,9 +58,6 @@ library OrderLevelLibrary {
                 if gt(shr(128, readData), 0) {
                     neighborTick := readTick
 
-                    neighborPrev := sload(slot)
-                    neighborNext := sload(add(slot, 1))
-
                     break
                 }
             }
@@ -72,10 +67,6 @@ library OrderLevelLibrary {
 
                 mstore(0, neighborTick)
                 mstore(0x20, self.slot)
-
-                let slot := keccak256(0, 0x40)
-                neighborPrev := sload(slot)
-                neighborNext := sload(add(slot, 1))
             }
         }
 
