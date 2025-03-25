@@ -10,12 +10,10 @@ import {TokenDelta} from "./libraries/TokenDelta.sol";
 import {TokenReserves} from "./libraries/TokenReserves.sol";
 import {NonzeroDeltaCount} from "./libraries/NonzeroDeltaCount.sol";
 import {TranscationLock} from "./libraries/TranscationLock.sol";
-import {CustomRevert} from "./libraries/CustomRevert.sol";
 
 contract PoolManager is IPoolManager, ERC6909Claims {
     using SafeCast for *;
     using TokenDelta for Token;
-    using CustomRevert for bytes4;
 
     modifier onlyWhenTxUnlocked() {
         if (!TranscationLock.isUnlocked()) AlreadyTxUnlocked.selector.revertWith();
