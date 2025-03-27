@@ -212,16 +212,13 @@ library OrderLevelLibrary {
         //    true      |    false    | exactInAmount = getAmount0Delta(-amount)
         //    false     |    true     | exactInAmount = amount
         //    false     |    false    | exactInAmount = getAmount1Delta(-amount)
-        uint256 amountInUp;
         if (exactIn) {
             amountIn = uint256(-amountRemaining);
         } else {
             if (zeroForOne) {
-                amountIn = price.getAmount0Delta(uint256(amountRemaining));
-                amountInUp = price.getAmount0DeltaUp(uint256(amountRemaining));
+                amountIn = price.getAmount0DeltaUp(uint256(amountRemaining));
             } else {
-                amountIn = price.getAmount1Delta(uint256(amountRemaining));
-                amountInUp = price.getAmount1DeltaUp(uint256(amountRemaining));
+                amountIn = price.getAmount1DeltaUp(uint256(amountRemaining));
             }
         }
 
@@ -245,7 +242,7 @@ library OrderLevelLibrary {
             // in LOB. At this time, due to math errors, the token conversion result may be round down, which will
             // lead to match less orders, which is equivalent to the user filling fewer orders and obtaining more tokens.
 
-            uint128 fillOrderAmount = uint128(exactIn ? amountIn : amountInUp); // Safe, amountIn < totalOpenAmount
+            uint128 fillOrderAmount = uint128(amountIn); // Safe, amountIn < totalOpenAmount
 
             level.totalOpenAmount -= fillOrderAmount;
             for (uint64 i = cache.lastCloseOrderIndex + 1; fillOrderAmount != 0; i++) {
