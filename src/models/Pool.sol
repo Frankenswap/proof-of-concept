@@ -254,22 +254,23 @@ library PoolLibrary {
                     if (amountSpecifiedRemaining != 0) {
                         // If AddOrderFlag, add order
                         if (flag.isAddOrderFlag()) {
-                            if (partiallyFillable && goodTillCancelled) {
-                                params.amountSpecified = amountSpecifiedRemaining.toInt128();
-                                params.currentTick = step.sqrtPrice;
+                            if (partiallyFillable) {
+                                if (goodTillCancelled) {
+                                    // Place Order
+                                    params.amountSpecified = amountSpecifiedRemaining.toInt128();
+                                    params.currentTick = step.sqrtPrice;
 
-                                uint256 orderAmount;
-                                (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
+                                    uint256 orderAmount;
+                                    (orderId, step.amountIn, orderAmount) = self.orderLevels.placeOrder(params);
 
-                                if (params.amountSpecified >= 0) {
-                                    orderSpecifiedRemaining += orderAmount.toInt256();
-                                    orderAmountCalculated -= step.amountIn.toInt256();
+                                    if (params.amountSpecified >= 0) {
+                                        orderSpecifiedRemaining += orderAmount.toInt256();
+                                        orderAmountCalculated -= step.amountIn.toInt256();
+                                    }
+
+                                    amountSpecifiedRemaining = 0;
+                                    step.bestPrice = step.sqrtPrice;
                                 }
-
-                                amountSpecifiedRemaining = 0;
-                                step.bestPrice = step.sqrtPrice;
-                            } else {
-                                revert MustPlaceOrder();
                             }
                         }
                     }
