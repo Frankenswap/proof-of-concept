@@ -72,6 +72,8 @@ contract PoolManager is IPoolManager, ERC6909Claims {
 
         balanceDelta = _pools[poolId].modifyReserves(sharesDelta);
 
+        _accountPoolBalanceDelta(poolKey, balanceDelta, msg.sender);
+
         emit ModifyReserves(poolId, msg.sender, sharesDelta, balanceDelta);
     }
 
@@ -98,6 +100,8 @@ contract PoolManager is IPoolManager, ERC6909Claims {
                 neighborTicks: params.neighborTicks
             })
         );
+
+        _accountPoolBalanceDelta(poolKey, balanceDelta, msg.sender);
     }
 
     /// @inheritdoc IPoolManager
@@ -175,6 +179,11 @@ contract PoolManager is IPoolManager, ERC6909Claims {
         }
 
         _accountDelta(token, paid.uint256toInt128(), recipient);
+    }
+
+    function _accountPoolBalanceDelta(PoolKey calldata poolKey, BalanceDelta delta, address target) internal {
+        _accountDelta(poolKey.token0, delta.amount0(), target);
+        _accountDelta(poolKey.token1, delta.amount1(), target);
     }
 
     function _accountDelta(Token token, int128 delta, address target) internal {
