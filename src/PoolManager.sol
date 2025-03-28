@@ -2,14 +2,7 @@
 pragma solidity =0.8.28;
 
 import {IPoolManager} from "./interfaces/IPoolManager.sol";
-import {SafeCast} from "./libraries/SafeCast.sol";
-import {ERC6909Claims} from "./ERC6909Claims.sol";
 import {IUnlockCallback} from "./interfaces/callback/IUnlockCallback.sol";
-import {Token, TokenLibrary} from "./models/Token.sol";
-import {TokenDelta} from "./libraries/TokenDelta.sol";
-import {TokenReserves} from "./libraries/TokenReserves.sol";
-import {NonzeroDeltaCount} from "./libraries/NonzeroDeltaCount.sol";
-import {TranscationLock} from "./libraries/TranscationLock.sol";
 import {IShareToken} from "./interfaces/IShareToken.sol";
 import {BalanceDelta} from "./models/BalanceDelta.sol";
 import {OrderId} from "./models/OrderId.sol";
@@ -17,17 +10,41 @@ import {Pool, PoolLibrary} from "./models/Pool.sol";
 import {PoolId} from "./models/PoolId.sol";
 import {PoolKey} from "./models/PoolKey.sol";
 import {SqrtPrice, SqrtPriceLibrary} from "./models/SqrtPrice.sol";
+import {Token, TokenLibrary} from "./models/Token.sol";
+import {TokenDelta} from "./libraries/TokenDelta.sol";
+import {ERC6909Claims} from "./ERC6909Claims.sol";
+import {SafeCast} from "./libraries/SafeCast.sol";
 
 /// @title PoolManager
 contract PoolManager is IPoolManager, ERC6909Claims {
-    using SafeCast for *;
+    using SafeCast for uint256;
     using TokenDelta for Token;
+
+    bool transient locked; // Locked = flase; Unlocked = true
+    uint256 transient nonzeroDeltaCount;
+    Token transient tokenReserve;
+    uint256 transient tokenReservesOf;
 
     mapping(PoolId => Pool) private _pools;
 
     modifier validatePoolKey(PoolKey calldata poolKey) {
         poolKey.validate();
         _;
+    }
+
+    modifier onlyWhenUnlocked() {
+        require(locked, ManagerLocked());
+        _;
+    }
+
+    function unlock(bytes calldata data) external returns (bytes memory result) {
+        require(!locked, AlreadyUnlocked());
+
+        locked = true;
+        result = IUnlockCallback(msg.sender).unlockCallback(data);
+
+        require(nonzeroDeltaCount == 0, TokenNotSettled());
+        locked = false;
     }
 
     /// @inheritdoc IPoolManager
@@ -44,23 +61,10 @@ contract PoolManager is IPoolManager, ERC6909Claims {
         );
     }
 
-    modifier onlyWhenTxUnlocked() {
-        if (!TranscationLock.isUnlocked()) AlreadyTxUnlocked.selector.revertWith();
-        _;
-    }
-
-    function unlock(bytes calldata data) external returns (bytes memory result) {
-        if (TranscationLock.isUnlocked()) AlreadyTxUnlocked.selector.revertWith();
-
-        result = IUnlockCallback(msg.sender).unlockCallback(data);
-
-        if (NonzeroDeltaCount.read() != 0) TokenNotSettled.selector.revertWith();
-        TranscationLock.lock();
-    }
-    
     /// @inheritdoc IPoolManager
     function modifyReserves(PoolKey calldata poolKey, int128 sharesDelta)
         external
+        onlyWhenUnlocked
         validatePoolKey(poolKey)
         returns (BalanceDelta balanceDelta)
     {
@@ -74,6 +78,7 @@ contract PoolManager is IPoolManager, ERC6909Claims {
     /// @inheritdoc IPoolManager
     function placeOrder(PoolKey calldata poolKey, PlaceOrderParams calldata params)
         external
+        onlyWhenUnlocked
         validatePoolKey(poolKey)
         returns (OrderId orderId, BalanceDelta balanceDelta)
     {
@@ -98,6 +103,7 @@ contract PoolManager is IPoolManager, ERC6909Claims {
     /// @inheritdoc IPoolManager
     function removeOrder(PoolKey calldata poolKey, OrderId orderId)
         external
+        onlyWhenUnlocked
         validatePoolKey(poolKey)
         returns (BalanceDelta balanceDelta)
     {
@@ -106,69 +112,69 @@ contract PoolManager is IPoolManager, ERC6909Claims {
 
     function sync(Token token) external {
         if (token.isAddressZero()) {
-            TokenReserves.resetToken();
+            tokenReserve = Token.wrap(address(0));
         } else {
             uint256 balance = token.balanceOfSelf();
-            TokenReserves.syncTokenAndReserves(token, balance);
+
+            tokenReserve = token;
+            tokenReservesOf = balance;
         }
     }
 
-    function take(Token token, address to, uint256 amount) external onlyWhenTxUnlocked {
+    function take(Token token, address to, uint256 amount) external onlyWhenUnlocked {
         unchecked {
-            _accountDelta(token, -(amount.toInt128()), msg.sender);
+            _accountDelta(token, -(amount.uint256toInt128()), msg.sender);
             token.transfer(to, amount);
         }
     }
 
-    function settle() external payable onlyWhenTxUnlocked returns (uint256) {
+    function settle() external payable onlyWhenUnlocked returns (uint256) {
         return _settle(msg.sender);
     }
 
-    function settleFor(address recipient) external payable onlyWhenTxUnlocked returns (uint256) {
+    function settleFor(address recipient) external payable onlyWhenUnlocked returns (uint256) {
         return _settle(recipient);
     }
 
-    function clear(Token token, uint256 amount) external onlyWhenTxUnlocked {
+    function clear(Token token, uint256 amount) external onlyWhenUnlocked {
         int256 current = token.getDelta(msg.sender);
-        int128 amountDelta = amount.toInt128();
+        int128 amountDelta = amount.uint256toInt128();
 
-        if (amountDelta != current) MustClearExactPositiveDelta.selector.revertWith();
-
+        require(amountDelta == current, MustClearExactPositiveDelta());
         unchecked {
             _accountDelta(token, -(amountDelta), msg.sender);
         }
     }
 
-    function mint(address to, uint256 id, uint256 amount) external onlyWhenTxUnlocked {
+    function mint(address to, uint256 id, uint256 amount) external onlyWhenUnlocked {
         unchecked {
             Token token = TokenLibrary.fromId(id);
-            _accountDelta(token, -(amount.toInt128()), msg.sender);
+            _accountDelta(token, -(amount.uint256toInt128()), msg.sender);
             _mint(to, token.toId(), amount);
         }
     }
 
-    function burn(address from, uint256 id, uint256 amount) external onlyWhenTxUnlocked {
+    function burn(address from, uint256 id, uint256 amount) external onlyWhenUnlocked {
         Token token = TokenLibrary.fromId(id);
-        _accountDelta(token, amount.toInt128(), from);
+        _accountDelta(token, amount.uint256toInt128(), from);
         _burnFrom(from, token.toId(), amount);
     }
 
     function _settle(address recipient) internal returns (uint256 paid) {
-        Token token = TokenReserves.getSyncedToken();
-
+        Token token = tokenReserve;
         if (token.isAddressZero()) {
             paid = msg.value;
         } else {
-            if (msg.value > 0) NonzeroNativeValue.selector.revertWith();
+            require(msg.value == 0, NonzeroNativeValue());
 
-            uint256 reservesBefore = TokenReserves.getSyncedReserves();
+            uint256 reservesBefore = tokenReservesOf;
             uint256 reservesNow = token.balanceOfSelf();
 
             paid = reservesNow - reservesBefore;
-            TokenReserves.resetToken();
+            token = Token.wrap(address(0));
         }
 
-        _accountDelta(token, paid.toInt128(), recipient);
+        _accountDelta(token, paid.uint256toInt128(), recipient);
     }
 
     function _accountDelta(Token token, int128 delta, address target) internal {
@@ -177,9 +183,9 @@ contract PoolManager is IPoolManager, ERC6909Claims {
         (int256 previous, int256 next) = TokenDelta.applyDelta(token, target, delta);
 
         if (next == 0) {
-            NonzeroDeltaCount.decrement();
+            nonzeroDeltaCount -= 1;
         } else if (previous == 0) {
-            NonzeroDeltaCount.increment();
+            nonzeroDeltaCount += 1;
         }
     }
 }

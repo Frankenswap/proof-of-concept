@@ -12,6 +12,21 @@ import {Token} from "../models/Token.sol";
 
 /// @title IPoolManager
 interface IPoolManager {
+    /// @notice Thrown when a token is not netted out after the contract is unlocked
+    error TokenNotSettled();
+
+    /// @notice Thrown when unlock is called, but the contract is already unlocked
+    error AlreadyUnlocked();
+
+    /// @notice Thrown when a function is called that requires the contract to be unlocked, but it is not
+    error ManagerLocked();
+
+    ///@notice Thrown when native currency is passed to a non native settlement
+    error NonzeroNativeValue();
+
+    /// @notice Thrown when `clear` is called with an amount that is not exactly equal to the open currency delta.
+    error MustClearExactPositiveDelta();
+
     /// @notice Emitted when a new pool is initialized
     /// @param token0 The first token
     /// @param token1 The second token
