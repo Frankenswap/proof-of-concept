@@ -29,7 +29,7 @@ contract PoolTest is Test {
     }
 
     function test_fuzz_placeOrder_directPlaceOrder(int128 amountSpecified) public {
-        // When zeroForOne = true and amountSpecified< 0, the order amount is getAmount1Delta
+        // When zeroForOne = true and amountSpecified < 0, the order amount is getAmount1Delta
         vm.assume(amountSpecified != -170141183460469231731687303715884105728);
         if (amountSpecified < 0) {
             amountSpecified =
@@ -96,6 +96,7 @@ contract PoolTest is Test {
         );
 
         assertEq(OrderId.unwrap(orderId), bytes32(0));
+        assertGe(SqrtPrice.unwrap(state.sqrtPrice), SqrtPrice.unwrap(targetPrice));
     }
 
     function test_placeOrder_AddOrder(int128 amountSpecified) public {
@@ -115,7 +116,7 @@ contract PoolTest is Test {
 
         SqrtPrice[] memory neighborTicks = new SqrtPrice[](0);
 
-        SqrtPrice targetPrice = SqrtPrice.wrap(150533508777102241427733505639);
+        SqrtPrice targetPrice = SqrtPrice.wrap(158456325028528675187087900671);
 
         (OrderId orderId,) = state.placeOrder(
             true,
