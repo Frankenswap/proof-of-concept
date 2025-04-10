@@ -6,7 +6,8 @@ import {SafeCast} from "../libraries/SafeCast.sol";
 /// @dev Layout: int128 amount0 | int128 amount1
 type BalanceDelta is bytes32;
 
-using {add as +} for BalanceDelta global;
+using {add as +, neq as !=} for BalanceDelta global;
+using BalanceDeltaLibrary for BalanceDelta global;
 using SafeCast for int256;
 
 function toBalanceDelta(int128 _amount0, int128 _amount1) pure returns (BalanceDelta balanceDelta) {
@@ -27,4 +28,22 @@ function add(BalanceDelta a, BalanceDelta b) pure returns (BalanceDelta) {
         res1 := add(a1, b1)
     }
     return toBalanceDelta(res0.toInt128(), res1.toInt128());
+}
+
+function neq(BalanceDelta a, BalanceDelta b) pure returns (bool) {
+    return BalanceDelta.unwrap(a) != BalanceDelta.unwrap(b);
+}
+
+library BalanceDeltaLibrary {
+    function amount0(BalanceDelta balanceDelta) internal pure returns (int128 _amount0) {
+        assembly ("memory-safe") {
+            _amount0 := sar(128, balanceDelta)
+        }
+    }
+
+    function amount1(BalanceDelta balanceDelta) internal pure returns (int128 _amount1) {
+        assembly ("memory-safe") {
+            _amount1 := signextend(15, balanceDelta)
+        }
+    }
 }
