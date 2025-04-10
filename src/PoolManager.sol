@@ -111,7 +111,12 @@ contract PoolManager is IPoolManager, ERC6909Claims {
         validatePoolKey(poolKey)
         returns (BalanceDelta balanceDelta)
     {
-        // TODO: Implement
+        address orderMaker;
+        PoolId poolId = poolKey.toId();
+
+        (orderMaker, balanceDelta) = _pools[poolId].removeOrder(orderId);
+
+        require(orderMaker == msg.sender, MustOrderMaker());
     }
 
     function sync(Token token) external {

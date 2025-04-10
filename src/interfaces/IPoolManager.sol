@@ -26,6 +26,8 @@ interface IPoolManager {
 
     /// @notice Thrown when `clear` is called with an amount that is not exactly equal to the open currency delta.
     error MustClearExactPositiveDelta();
+    /// @notice Thrown when remove the order is not made by the order maker
+    error MustOrderMaker();
 
     /// @notice Emitted when a new pool is initialized
     /// @param token0 The first token
