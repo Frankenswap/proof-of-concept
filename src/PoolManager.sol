@@ -182,7 +182,7 @@ contract PoolManager is IPoolManager, ERC6909Claims {
             uint256 reservesNow = token.balanceOfSelf();
 
             paid = reservesNow - reservesBefore;
-            token = Token.wrap(address(0));
+            tokenReserve = Token.wrap(address(0));
         }
 
         _accountDelta(token, paid.uint256toInt128(), recipient);
