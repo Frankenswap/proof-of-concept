@@ -20,7 +20,7 @@ contract PoolManager is IPoolManager, ERC6909Claims {
     using SafeCast for uint256;
     using TokenDelta for Token;
 
-    bool transient locked; // Locked = flase; Unlocked = true
+    bool transient unlocked;
     uint256 transient nonzeroDeltaCount;
     Token transient tokenReserve;
     uint256 transient tokenReservesOf;
@@ -33,18 +33,18 @@ contract PoolManager is IPoolManager, ERC6909Claims {
     }
 
     modifier onlyWhenUnlocked() {
-        require(locked, ManagerLocked());
+        require(unlocked, ManagerLocked());
         _;
     }
 
     function unlock(bytes calldata data) external returns (bytes memory result) {
-        require(!locked, AlreadyUnlocked());
+        require(!unlocked, AlreadyUnlocked());
 
-        locked = true;
+        unlocked = true;
         result = IUnlockCallback(msg.sender).unlockCallback(data);
 
         require(nonzeroDeltaCount == 0, TokenNotSettled());
-        locked = false;
+        unlocked = false; // locking
     }
 
     /// @inheritdoc IPoolManager
